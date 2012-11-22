@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 project(nube)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GDK gdk-3.0)
 pkg_check_modules(CLUTTER clutter-1.0 clutter-x11-1.0)
 set(CMAKE_C_FLAGS "-std=gnu99 -ggdb3 -Wall")
 

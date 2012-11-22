@@ -59,7 +59,7 @@ typedef struct {
 
 #define DEFAULT_FONT "Exo 12"
 
-NubePanelOptions TOP_PANEL_OPTIONS = {
+static const NubePanelOptions TOP_PANEL_OPTIONS = {
 	BG_COLOR,
 	BORDER_COLOR,
 	
@@ -87,7 +87,7 @@ NubePanelOptions TOP_PANEL_OPTIONS = {
 	}
 };
 
-NubePanelOptions RIGHT_PANEL_OPTIONS = {
+static const NubePanelOptions RIGHT_PANEL_OPTIONS = {
 	BG_COLOR, BORDER_COLOR,
 	
 	0, 0, 80, 40,
@@ -100,7 +100,7 @@ NubePanelOptions RIGHT_PANEL_OPTIONS = {
 	}
 };
 
-NubePanelOptions BOTTOM_PANEL_OPTIONS = {
+static const NubePanelOptions BOTTOM_PANEL_OPTIONS = {
 	BG_COLOR, BORDER_COLOR,
 	
 	40, 0, 0, 40,
@@ -113,7 +113,7 @@ NubePanelOptions BOTTOM_PANEL_OPTIONS = {
 	}
 };
 
-NubePanelOptions LEFT_PANEL_OPTIONS = {
+static const NubePanelOptions LEFT_PANEL_OPTIONS = {
 	BG_COLOR, BORDER_COLOR,
 	
 	40, 80, 0, 0,

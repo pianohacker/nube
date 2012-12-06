@@ -7,6 +7,7 @@ set(CMAKE_C_FLAGS "-std=gnu99 -ggdb3 -Wall")
 
 add_executable(nube
 	src/drawing.c
+	src/linux-info.c
 	src/panel.c
 	src/util.c
 	src/widgets.c

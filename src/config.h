@@ -2,6 +2,7 @@
 #define __CONFIG_H__
 
 #include <clutter/clutter.h>
+#include <stdint.h>
 
 //> Typedefs
 
@@ -11,14 +12,23 @@ typedef struct {
 	enum {
 	   WIDGET_END = 0,
 	   WIDGET_CLOCK,
-	   WIDGET_BATTERY
+	   WIDGET_BATTERY_TEXT,
+	   WIDGET_BATTERY_BAR,
+	   WIDGET_CPU_TEXT,
+	   WIDGET_CPU_BAR
 	} type;
+
 	gint row;
 	gint column;
 	gint width;
 	gint height;
+
 	ClutterActorAlign x_align;
 	ClutterActorAlign y_align;
+
+	gboolean x_expand;
+	gboolean y_expand;
+
 	char *config;
 } NubeWidgetOptions;
 
@@ -42,10 +52,10 @@ typedef struct {
 	NubeWidgetOptions widget_opts[MAX_WIDGETS_SIZE];
 } NubePanelOptions;
 
-//> Simple Options
+//> Appearance Options
 
 #define BACK_COLOR { 208, 48, 3, 50 }
-#define BG_COLOR { 32, 34, 35, 128 }
+#define BG_COLOR { 32, 34, 35, 160 }
 #define FG_COLOR { 255, 255, 255, 240 }
 #define BORDER_COLOR { 249, 249, 249, 255 }
 
@@ -72,16 +82,20 @@ static const NubePanelOptions TOP_PANEL_OPTIONS = {
 	{
 		{ 
 			WIDGET_CLOCK,
-			0, 0,
-			1, 1,
-			CLUTTER_ACTOR_ALIGN_START, CLUTTER_ACTOR_ALIGN_FILL,
+			row: 0, column: 0,
+			width: 1, height: 1,
+
+			CLUTTER_ACTOR_ALIGN_FILL, CLUTTER_ACTOR_ALIGN_FILL,
+			TRUE, FALSE,
+
 			"%a, %b %e\nExo 24"
 		},
 		{ 
 			WIDGET_CLOCK,
-			0, 1,
-			1, 1,
+			row: 0, column: 1,
+			width: 1, height: 1,
 			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_FILL,
+			FALSE, FALSE,
 			"%I:%M %p\nExo 24"
 		},
 	}
@@ -91,12 +105,28 @@ static const NubePanelOptions RIGHT_PANEL_OPTIONS = {
 	BG_COLOR, BORDER_COLOR,
 	
 	0, 0, 80, 40,
-	80, 10, 40, 10,
+	40, 10, 80, 10,
 
 	160,
 	0,
 
 	{
+		{ 
+			WIDGET_CPU_TEXT,
+			row: 0, column: 0,
+			width: 1, height: 1,
+			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_START,
+			TRUE, FALSE,
+			"Exo 18"
+		},
+		{ 
+			WIDGET_CPU_BAR,
+			row: 1, column: 0,
+			width: 1, height: 1,
+			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_FILL,
+			FALSE, TRUE,
+			"10\n10"
+		},
 	}
 };
 
@@ -124,10 +154,19 @@ static const NubePanelOptions LEFT_PANEL_OPTIONS = {
 
 	{
 		{ 
-			WIDGET_BATTERY,
-			0, 0,
-			1, 1,
-			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_FILL,
+			WIDGET_BATTERY_TEXT,
+			row: 0, column: 0,
+			width: 1, height: 1,
+			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_START,
+			FALSE, FALSE,
+			"Exo 18"
+		},
+		{ 
+			WIDGET_BATTERY_BAR,
+			row: 1, column: 0,
+			width: 1, height: 1,
+			CLUTTER_ACTOR_ALIGN_CENTER, CLUTTER_ACTOR_ALIGN_FILL,
+			FALSE, TRUE,
 			"10\n10"
 		},
 	}

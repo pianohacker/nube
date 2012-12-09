@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
 	);
 	clutter_x11_add_filter((ClutterX11FilterFunc) filter_func, &root_window);
 
-	clutter_threads_add_timeout(1000, nube_update_widgets, NULL);
+	clutter_threads_add_timeout(UPDATE_DELAY, nube_update_widgets, NULL);
 
 	clutter_main();
 

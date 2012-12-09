@@ -73,6 +73,8 @@ void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, co
 
 	clutter_cairo_set_source_color(cr, &fg_color);
 
+	g_debug("Drawing %g within %d, %d", usage, width, height);
+
 	cairo_rectangle(cr,
 		0, height * (1 - usage),
 		width, height * usage

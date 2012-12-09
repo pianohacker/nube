@@ -112,14 +112,6 @@ static const NubePanelOptions RIGHT_PANEL_OPTIONS = {
 
 	{
 		{ 
-			WIDGET_CPU_TEXT,
-			row: 0, column: 0,
-			width: 1, height: 1,
-			CLUTTER_ACTOR_ALIGN_END, CLUTTER_ACTOR_ALIGN_START,
-			TRUE, FALSE,
-			"Exo 18"
-		},
-		{ 
 			WIDGET_CPU_BAR,
 			row: 1, column: 0,
 			width: 1, height: 1,
@@ -171,6 +163,9 @@ static const NubePanelOptions LEFT_PANEL_OPTIONS = {
 		},
 	}
 };
+
+//> Behavior
+#define UPDATE_DELAY 1000
 
 //> Paths
 #define BATTERY_PREFIX "/sys/class/power_supply/BAT0"

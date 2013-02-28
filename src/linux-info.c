@@ -64,5 +64,6 @@ double nube_sys_get_cpu() {
 	last_total = total;
 	last_active_total = active_total;
 
+	fclosestat;
 	return result;
 }

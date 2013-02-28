@@ -19,6 +19,7 @@ double nube_get_num_file(const char *path) {
 	int fd = open(path, O_RDONLY);
 	char buffer[64];
 	buffer[read(fd, buffer, 64)] = '\0';
+	close(fd);
 	
 	return strtod(buffer, NULL);
 }
@@ -27,6 +28,7 @@ char* nube_get_str_file(const char *path) {
 	int fd = open(path, O_RDONLY);
 	char *buffer = malloc(64);
 	buffer[read(fd, buffer, 64) - 1] = '\0';
+	close(fd);
 	
 	return buffer;
 }

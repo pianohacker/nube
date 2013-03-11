@@ -87,10 +87,7 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 	return result;
 }
 
-void nube_draw_cut_rect(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubePanelOptions *opts) {
-	width -= GLOW_SIZE * 2;
-	height -= GLOW_SIZE * 2;
-
+void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, NubePanelConfig *panel_config) {
 	cairo_save(cr);
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_paint(cr);
@@ -98,26 +95,17 @@ void nube_draw_cut_rect(ClutterActor *actor, cairo_t *cr, gint width, gint heigh
 
 	cairo_translate(cr, GLOW_SIZE, GLOW_SIZE);
 
-	cairo_move_to(cr, 0, opts->top_left);
-	cairo_line_to(cr, opts->top_left, 0);
-
-	cairo_line_to(cr, width - opts->top_right, 0);
-	cairo_line_to(cr, width, opts->top_right);
-
-	cairo_line_to(cr, width, height - opts->bottom_right);
-	cairo_line_to(cr, width - opts->bottom_right, height);
-
-	cairo_line_to(cr, opts->bottom_left, height);
-	cairo_line_to(cr, 0, height - opts->bottom_left);
+	for (int i = 0; i < panel_config->shape_elems->length; i += 2) {
+		cairo_line_to(
+			g_array_index(panel_config->shape_elems, double, i),
+			g_array_index(panel_config->shape_elems, double, i+1)
+		);
+	}
 
 	cairo_close_path(cr);
-	cairo_set_source(cr, nube_offset_quads(cairo_copy_path(cr), GLOW_SIZE));
+	cairo_set_source(cr, nube_offset_quads(cairo_copy_path(cr), nube_config.glow_size);
 	cairo_paint(cr);
 
-	clutter_cairo_set_source_color(cr, &opts->fill_color);
+	clutter_cairo_set_source_color(cr, panel_config->background);
 	cairo_fill_preserve(cr);
-
-	/*clutter_cairo_set_source_color(cr, &opts->stroke_color);*/
-	/*cairo_set_line_width(cr, opts->border_width);*/
-	/*cairo_stroke(cr);*/
 }

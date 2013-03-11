@@ -112,10 +112,8 @@ static void _panel_shape_start_tag(
 
 		gdouble px = g_value_get_double(x_value), py = g_value_get_double(y_value);
 
-		if (py < panel_config.shape_top) panel_config.shape_top = py;
-		if (px < panel_config.shape_left) panel_config.shape_left = px;
-		if (px > panel_config.shape_right) panel_config.shape_right = px;
-		if (py > panel_config.shape_bottom) panel_config.shape_bottom = py;
+		if (px > panel_config.shape_max_x) panel_config.shape_max_x = px;
+		if (py > panel_config.shape_max_y) panel_config.shape_max_y = py;
 
 		g_array_append_val(panel_config.shape_elems, px);
 		g_array_append_val(panel_config.shape_elems, py);

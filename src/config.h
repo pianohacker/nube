@@ -13,16 +13,14 @@ typedef struct {
 	ClutterPoint *position;
 	ClutterPoint *pivot_point;
 
-	GDataList *props;
+	GData *props;
 } NubeWidgetConfig;
 
 typedef struct {
 	gdouble position;
 
-	gdouble shape_top;
-	gdouble shape_left;
-	gdouble shape_right;
-	gdouble shape_bottom;
+	gdouble shape_max_x;
+	gdouble shape_max_y;
 	GArray *shape_elems;
 
 	ClutterColor *background;

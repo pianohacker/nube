@@ -42,38 +42,34 @@ void setup_stage(ClutterStage *stage, gpointer *data) {
 	clutter_actor_get_size(CLUTTER_ACTOR(stage), &nube.width, &nube.height);
 
 	nube.top_panel = nube_panel_new(
-		-GLOW_SIZE, -GLOW_SIZE,
-		-GLOW_SIZE, -GLOW_SIZE * 2 - TOP_PANEL_OPTIONS.size,
-		nube.width, TOP_PANEL_OPTIONS.size,
+		nube_config.top_panel.position, 0,
+		0, -1,
 
-		&TOP_PANEL_OPTIONS
+		&nube_config.top_panel
 	);
 	clutter_actor_add_child(nube.stage, nube.top_panel);
 
 	nube.right_panel = nube_panel_new(
-		nube.width - RIGHT_PANEL_OPTIONS.size - GLOW_SIZE, GUTTER_SIZE - GLOW_SIZE + TOP_PANEL_OPTIONS.size,
-		nube.width, GUTTER_SIZE - GLOW_SIZE + TOP_PANEL_OPTIONS.size,
-		RIGHT_PANEL_OPTIONS.size, nube.height - TOP_PANEL_OPTIONS.size - BOTTOM_PANEL_OPTIONS.size - GUTTER_SIZE * 2,
+		nube.width - nube_config.right_panel.shape_max_x, nube_config.right_panel.position,
+		1, 0,
 
-		&RIGHT_PANEL_OPTIONS
+		&nube_config.right_panel
 	);
 	clutter_actor_add_child(nube.stage, nube.right_panel);
 
 	nube.bottom_panel = nube_panel_new(
-		-GLOW_SIZE, nube.height - BOTTOM_PANEL_OPTIONS.size - GLOW_SIZE,
-		-GLOW_SIZE, nube.height,
-		nube.width, BOTTOM_PANEL_OPTIONS.size,
+		nube_config.bottom_panel.position, nube.height - nube_config.bottom_panel.shape_max_y,
+		0, 1,
 
-		&BOTTOM_PANEL_OPTIONS
+		&nube_config.bottom_panel
 	);
 	clutter_actor_add_child(nube.stage, nube.bottom_panel);
 
 	nube.left_panel = nube_panel_new(
-		-GLOW_SIZE, GUTTER_SIZE - GLOW_SIZE + TOP_PANEL_OPTIONS.size,
-		-GLOW_SIZE * 2 - LEFT_PANEL_OPTIONS.size, GUTTER_SIZE - GLOW_SIZE + TOP_PANEL_OPTIONS.size,
-		LEFT_PANEL_OPTIONS.size, nube.height -TOP_PANEL_OPTIONS.size - BOTTOM_PANEL_OPTIONS.size - GUTTER_SIZE * 2,
+		0, nube_config.left_panel.position,
+		-1, 0,
 
-		&LEFT_PANEL_OPTIONS
+		&nube_config.left_panel
 	);
 	clutter_actor_add_child(nube.stage, nube.left_panel);
 
@@ -120,11 +116,11 @@ void show_stage() {
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.show_trans));
 	clutter_transition_group_remove_all(CLUTTER_TRANSITION_GROUP(nube.show_trans));
 
-	add_opacity_transition(nube.show_trans, nube.stage, SHOW_LEN, 255);
-	add_slide_transition(nube.show_trans, nube.top_panel, SHOW_LEN, "shown_point");
-	add_slide_transition(nube.show_trans, nube.right_panel, SHOW_LEN, "shown_point");
-	add_slide_transition(nube.show_trans, nube.bottom_panel, SHOW_LEN, "shown_point");
-	add_slide_transition(nube.show_trans, nube.left_panel, SHOW_LEN, "shown_point");
+	add_opacity_transition(nube.show_trans, nube.stage, nube_config.show_time, 255);
+	add_slide_transition(nube.show_trans, nube.top_panel, nube_config.show_time, "shown_point");
+	add_slide_transition(nube.show_trans, nube.right_panel, nube_config.show_time, "shown_point");
+	add_slide_transition(nube.show_trans, nube.bottom_panel, nube_config.show_time, "shown_point");
+	add_slide_transition(nube.show_trans, nube.left_panel, nube_config.show_time, "shown_point");
 
 	clutter_timeline_start(CLUTTER_TIMELINE(nube.show_trans));
 }
@@ -138,11 +134,11 @@ void hide_stage() {
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.hide_trans));
 	clutter_transition_group_remove_all(CLUTTER_TRANSITION_GROUP(nube.hide_trans));
 
-	add_opacity_transition(nube.hide_trans, nube.stage, HIDE_LEN, 0);
-	add_slide_transition(nube.hide_trans, nube.top_panel, HIDE_LEN, "hidden_point");
-	add_slide_transition(nube.hide_trans, nube.right_panel, HIDE_LEN, "hidden_point");
-	add_slide_transition(nube.hide_trans, nube.bottom_panel, HIDE_LEN, "hidden_point");
-	add_slide_transition(nube.hide_trans, nube.left_panel, HIDE_LEN, "hidden_point");
+	add_opacity_transition(nube.hide_trans, nube.stage, nube_config.hide_time, 0);
+	add_slide_transition(nube.hide_trans, nube.top_panel, nube_config.hide_time, "hidden_point");
+	add_slide_transition(nube.hide_trans, nube.right_panel, nube_config.hide_time, "hidden_point");
+	add_slide_transition(nube.hide_trans, nube.bottom_panel, nube_config.hide_time, "hidden_point");
+	add_slide_transition(nube.hide_trans, nube.left_panel, nube_config.hide_time, "hidden_point");
 
 	clutter_timeline_start(CLUTTER_TIMELINE(nube.hide_trans));
 }
@@ -171,16 +167,14 @@ int main(int argc, char **argv) {
 	if (!nube_config_load()) return 1;
 
 	nube.show_trans = clutter_transition_group_new();
-	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.show_trans), SHOW_LEN);
+	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.show_trans), nube_config.show_time);
 	nube.hide_trans = clutter_transition_group_new();
-	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.hide_trans), HIDE_LEN);
+	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.hide_trans), nube_config.hide_time);
 	g_signal_connect(nube.hide_trans, "completed", G_CALLBACK(hide_done), NULL);
-
-	ClutterColor stage_color = BACK_COLOR;
 
 	nube.stage = clutter_stage_new();
 	clutter_stage_set_use_alpha(CLUTTER_STAGE(nube.stage), TRUE);
-	clutter_actor_set_background_color(nube.stage, &stage_color);
+	clutter_actor_set_background_color(nube.stage, nube_config.background);
 	g_signal_connect(nube.stage, "destroy", clutter_main_quit, NULL);
 	g_signal_connect(nube.stage, "fullscreen", G_CALLBACK(setup_stage), NULL);
 
@@ -202,7 +196,7 @@ int main(int argc, char **argv) {
 	);
 	clutter_x11_add_filter((ClutterX11FilterFunc) filter_func, &root_window);
 
-	clutter_threads_add_timeout(UPDATE_DELAY, nube_update_widgets, NULL);
+	clutter_threads_add_timeout(nube_config.update_delay, nube_update_widgets, NULL);
 
 	clutter_main();
 

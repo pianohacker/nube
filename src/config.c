@@ -1,11 +1,23 @@
 #include <clutter/clutter.h>
 #include <glib.h>
 #include <gsdl/parser.h>
+#include <gsdl/syntax.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 
 NubeGlobalConfig nube_config;
+static GError *parse_err;
+
+static void _root_error_handler(
+		GSDLParserContext *context,
+		GError *err,
+		gpointer user_data
+	) {
+	parse_err = err;
+}
 
 static void _appearance_start_tag(
 		GSDLParserContext *context,
@@ -49,8 +61,8 @@ static void _appearance_start_tag(
 static GSDLParser appearance_parser = {
 	_appearance_start_tag,
 	NULL,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _behavior_start_tag(
 		GSDLParserContext *context,
@@ -92,8 +104,8 @@ static void _behavior_start_tag(
 static GSDLParser behavior_parser = {
 	_behavior_start_tag,
 	NULL,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _panel_shape_start_tag(
 		GSDLParserContext *context,
@@ -117,6 +129,9 @@ static void _panel_shape_start_tag(
 
 		g_array_append_val(panel_config.shape_elems, px);
 		g_array_append_val(panel_config.shape_elems, py);
+
+		g_free(x_value);
+		g_free(y_value);
 	} else {
 		g_set_error(
 			err,
@@ -127,15 +142,13 @@ static void _panel_shape_start_tag(
 		);
 		return;
 	}
-
-	g_free(value);
 }
 
 static GSDLParser panel_shape_parser = {
 	_panel_shape_start_tag,
 	NULL,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _panel_widgets_inner_start_tag(
 		GSDLParserContext *context,
@@ -155,18 +168,18 @@ static void _panel_widgets_inner_start_tag(
 		widget_config.position = clutter_point_alloc();
 		clutter_point_init(widget_config.position, g_value_get_float(value), g_value_get_float(y_value));
 
-		g_value_free(value);
-		g_value_free(y_value);
+		g_free(value);
+		g_free(y_value);
 	} else if (strcmp(name, "pivot_point")) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_FLOAT, &value, G_TYPE_FLOAT, &y_value, GSDL_GTYPE_END)) return;
 
 		widget_config.pivot_point = clutter_point_alloc();
 		clutter_point_init(widget_config.pivot_point, g_value_get_float(value), g_value_get_float(y_value));
 
-		g_value_free(value);
-		g_value_free(y_value);
+		g_free(value);
+		g_free(y_value);
 	} else {
-		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_ANY, &value, GSDL_GTYPE_END)) return;
+		if (!gsdl_parser_collect_values(name, values, err, GSDL_GTYPE_ANY, &value, GSDL_GTYPE_END)) return;
 
 		g_datalist_set_data(widget_config.props, name, value);
 
@@ -177,8 +190,8 @@ static void _panel_widgets_inner_start_tag(
 static GSDLParser panel_widgets_inner_parser = {
 	_panel_widgets_inner_start_tag,
 	NULL,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _panel_widgets_start_tag(
 		GSDLParserContext *context,
@@ -197,14 +210,14 @@ static void _panel_widgets_start_tag(
 
 	widget_config->type_id = g_quark_from_string(name);
 	
-	if (!gsdl_parser_collect_attributes(name, values, err, G_TYPE_STRING, "source", &value, GSDL_GTYPE_END)) return;
+	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "source", &value, GSDL_GTYPE_END)) return;
 
 	if (value) {
 		widget_config->source_id = g_quark_from_string(g_value_get_string(value));
 		g_free(value);
 	}
 
-	gsdl_parser_context_push(context, &_panel_widgets_inner_parser, widget_config);
+	gsdl_parser_context_push(context, &panel_widgets_inner_parser, widget_config);
 }
 
 static void _panel_widgets_end_tag(
@@ -219,17 +232,8 @@ static void _panel_widgets_end_tag(
 static GSDLParser panel_widgets_parser = {
 	_panel_widgets_start_tag,
 	_panel_widgets_end_tag,
-	NULL,
-}
-
-static void _panel_inner_end_tag(
-		GSDLParserContext *context,
-		const gchar *name,
-		gpointer user_data,
-		GError **err
-	) {
-	if (strcmp(name, "position") != 0) gsdl_parser_context_pop(context);
-}
+	_root_error_handler
+};
 
 static void _panel_inner_start_tag(
 		GSDLParserContext *context,
@@ -248,7 +252,7 @@ static void _panel_inner_start_tag(
 
 		panel_config.position = g_value_get_double(value);
 	} else if (strcmp(name, "shape") == 0) {
-		if (!gsdl_parser_collect_attributes(name, values, err, G_TYPE_STRING, "background", &value, GSDL_GTYPE_END)) return;
+		if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "background", &value, GSDL_GTYPE_END)) return;
 
 		panel_config.background = clutter_color_alloc();
 		clutter_color_from_string(panel_config.background, g_value_get_string(value));
@@ -283,8 +287,8 @@ static void _panel_inner_end_tag(
 static GSDLParser panel_inner_parser = {
 	_panel_inner_start_tag,
 	_panel_inner_end_tag,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _panels_start_tag(
 		GSDLParserContext *context,
@@ -326,8 +330,8 @@ static void _panels_end_tag(
 static GSDLParser panels_parser = {
 	_panels_start_tag,
 	_panels_end_tag,
-	NULL,
-}
+	_root_error_handler
+};
 
 static void _root_start_tag(
 		GSDLParserContext *context,
@@ -368,20 +372,20 @@ static void _root_end_tag(
 static GSDLParser root_parser = {
 	_root_start_tag,
 	_root_end_tag,
-	NULL,
+	_root_error_handler
 };
 
 bool nube_config_load() {
 	char rc_name[PATH_MAX];
 	sprintf(rc_name, "%s/.nube.conf", getenv("HOME"));
-	if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) return;
+	if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) return false;
 
-	GError *err = NULL;
-	GSDLParserContext *context = gsdl_parser_context_new(root_parser, NULL);
+	parse_err = NULL;
+	GSDLParserContext *context = gsdl_parser_context_new(&root_parser, NULL);
 	gsdl_parser_context_parse_file(context, rc_name);
 
-	if (err) {
-		g_printerr("Could not load ~/.nube.conf: %s", err->message);
+	if (parse_err) {
+		g_printerr("Could not load ~/.nube.conf: %s", parse_err->message);
 		return false;
 	}
 

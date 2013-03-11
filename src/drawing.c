@@ -15,7 +15,7 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 
 	int path_len = path->num_data / 2;
 	double *norm_angles = malloc(sizeof(double) * path_len);
-	double *angle_spans = malloc(sizeof(double) * path_len);
+	//double *angle_spans = malloc(sizeof(double) * path_len);
 	double *corner_angles = malloc(sizeof(double) * path_len);
 	DPoint *points = calloc(sizeof(DPoint), path_len);
 
@@ -69,8 +69,8 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 			cairo_mesh_pattern_begin_patch(result);
 			cairo_mesh_pattern_move_to(result, points[next_i].x, points[next_i].y);
 			cairo_mesh_pattern_line_to(result, points[i].x, points[i].y);
-			cairo_mesh_pattern_line_to(result, points[i].x + cos(corner_angles[i]) * GLOW_SIZE, points[i].y + sin(corner_angles[i]) * GLOW_SIZE);
-			cairo_mesh_pattern_line_to(result, points[next_i].x + cos(corner_angles[next_i]) * GLOW_SIZE, points[next_i].y + sin(corner_angles[next_i]) * GLOW_SIZE);
+			cairo_mesh_pattern_line_to(result, points[i].x + cos(corner_angles[i]) * nube_config.glow_size, points[i].y + sin(corner_angles[i]) * nube_config.glow_size);
+			cairo_mesh_pattern_line_to(result, points[next_i].x + cos(corner_angles[next_i]) * nube_config.glow_size, points[next_i].y + sin(corner_angles[next_i]) * nube_config.glow_size);
 
 			cairo_mesh_pattern_set_corner_color_rgba(result, 0, 1, 1, 1, 0.4);
 			cairo_mesh_pattern_set_corner_color_rgba(result, 1, 1, 1, 1, 0.4);
@@ -93,17 +93,18 @@ void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, NubePanelConfig *pan
 	cairo_paint(cr);
 	cairo_restore(cr);
 
-	cairo_translate(cr, GLOW_SIZE, GLOW_SIZE);
+	cairo_translate(cr, nube_config.glow_size, nube_config.glow_size);
 
-	for (int i = 0; i < panel_config->shape_elems->length; i += 2) {
+	for (int i = 0; i < panel_config->shape_elems->len; i += 2) {
 		cairo_line_to(
+			cr,
 			g_array_index(panel_config->shape_elems, double, i),
 			g_array_index(panel_config->shape_elems, double, i+1)
 		);
 	}
 
 	cairo_close_path(cr);
-	cairo_set_source(cr, nube_offset_quads(cairo_copy_path(cr), nube_config.glow_size);
+	cairo_set_source(cr, nube_offset_quads(cairo_copy_path(cr), nube_config.glow_size));
 	cairo_paint(cr);
 
 	clutter_cairo_set_source_color(cr, panel_config->background);

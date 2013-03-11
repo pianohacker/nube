@@ -9,11 +9,11 @@
 
 #define _cairo_clear(cr) cairo_save(cr); cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR); cairo_paint(cr); cairo_restore(cr)
 
-void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetOptions *opts) {
+void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
 	double energy, power;
 	nube_sys_get_power(&energy, &power);
 	double energy_used = 1 - energy;
-	ClutterColor fg_color = FG_COLOR;
+	ClutterColor fg_color = nube_config.fg;
 	ClutterColor partial_color = WIDGET_PARTIAL_COLOR;
 
 	_cairo_clear(cr);
@@ -27,7 +27,7 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 		);
 		cairo_fill(cr);
 
-		clutter_cairo_set_source_color(cr, &fg_color);
+		clutter_cairo_set_source_color(cr, fg_color);
 
 		cairo_rectangle(cr,
 			width * .3, height * energy_used,
@@ -55,7 +55,7 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 		);
 		cairo_fill(cr);
 
-		clutter_cairo_set_source_color(cr, &fg_color);
+		clutter_cairo_set_source_color(cr, fg_color);
 
 		cairo_rectangle(cr,
 			0, height * energy_used,
@@ -65,13 +65,11 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 	}
 }
 
-void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetOptions *opts) {
+void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
 	double usage = nube_sys_get_cpu();
-	ClutterColor fg_color = FG_COLOR;
-
 	_cairo_clear(cr);
 
-	clutter_cairo_set_source_color(cr, &fg_color);
+	clutter_cairo_set_source_color(cr, nube_config.fg);
 
 	g_debug("Drawing %g within %d, %d", usage, width, height);
 
@@ -82,7 +80,7 @@ void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, co
 	cairo_fill(cr);
 }
 
-void nube_update_widget(ClutterActor *widget, const NubeWidgetOptions *opts) {
+void nube_update_widget(ClutterActor *widget, const NubeWidgetConfig *widget_config) {
 	char **config_parts = g_strsplit_set(opts->config, "\n", -1);
 	char buffer[64];
 	double energy, power, usage;

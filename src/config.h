@@ -2,6 +2,7 @@
 #define __CONFIG_H__
 
 #include <clutter/clutter.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 //> Typedefs
@@ -13,7 +14,7 @@ typedef struct {
 	ClutterPoint *position;
 	ClutterPoint *pivot_point;
 
-	GData *props;
+	GData **props;
 } NubeWidgetConfig;
 
 typedef struct {
@@ -43,6 +44,8 @@ typedef struct {
 } NubeGlobalConfig;
 
 extern NubeGlobalConfig nube_config;
+
+bool nube_config_load();
 
 //> Appearance Options
 

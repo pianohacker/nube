@@ -30,10 +30,10 @@ struct {
 char *runtime_path;
 
 gboolean nube_update_widgets(gpointer user_data) {
-	nube_update_all(nube.top_panel);
+	/*nube_update_all(nube.top_panel);
 	nube_update_all(nube.right_panel);
 	nube_update_all(nube.bottom_panel);
-	nube_update_all(nube.left_panel);
+	nube_update_all(nube.left_panel);*/
 
 	return TRUE;
 }

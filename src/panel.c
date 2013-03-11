@@ -28,7 +28,7 @@ ClutterActor* nube_panel_new(gfloat x, gfloat y, gfloat hidden_x_shift, gfloat h
 	g_object_set_data(G_OBJECT(panel), "shown_point", shown_point);
 
 	ClutterPoint *hidden_point = clutter_point_alloc();
-	clutter_actor_get_position(&hidden_point->x, &hidden_point->y);
+	clutter_actor_get_position(panel, &hidden_point->x, &hidden_point->y);
 	g_object_set_data(G_OBJECT(panel), "hidden_point", hidden_point);
 
 	ClutterContent *content = clutter_canvas_new();

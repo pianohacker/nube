@@ -166,9 +166,9 @@ int main(int argc, char **argv) {
 	runtime_path = strcat(strcat(malloc(PATH_MAX), nube_get_runtime_path(argv[0])), "/share");
 
 	clutter_x11_set_use_argb_visual(TRUE);
-	if (clutter_init(&argc, &argv) != CLUTTER_INIT_SUCCESS) {
-	   return 1;
-	}
+	if (clutter_init(&argc, &argv) != CLUTTER_INIT_SUCCESS) return 1;
+
+	if (!nube_config_load()) return 1;
 
 	nube.show_trans = clutter_transition_group_new();
 	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.show_trans), SHOW_LEN);

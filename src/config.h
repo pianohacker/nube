@@ -14,7 +14,7 @@ typedef struct {
 	ClutterPoint *position;
 	ClutterPoint *pivot_point;
 
-	GData **props;
+	GData *props;
 } NubeWidgetConfig;
 
 typedef struct {

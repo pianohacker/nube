@@ -8,16 +8,30 @@
 #include "drawing.h"
 #include "util.h"
 
+static DPoint _line_intersect(
+		double x1, double y1,
+		double x2, double y2,
+		double x3, double y3,
+		double x4, double y4
+	) {
+	return ((DPoint) {
+		((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)),
+		((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+	});
+}
+
 static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 	cairo_pattern_t *result = cairo_pattern_create_mesh();
 	cairo_path_data_t *cur_data = path->data;
 	cairo_path_data_t *end = path->data + path->num_data;
 
 	int path_len = path->num_data / 2;
-	double *norm_angles = malloc(sizeof(double) * path_len);
+	double norm_angles[path_len];
 	//double *angle_spans = malloc(sizeof(double) * path_len);
-	double *corner_angles = malloc(sizeof(double) * path_len);
-	DPoint *points = calloc(sizeof(DPoint), path_len);
+	DPoint points[path_len];
+	DPoint line_starts[path_len];
+	DPoint line_ends[path_len];
+	DPoint intersect_points[path_len];
 
 	for (; cur_data < end; cur_data++) {
 		if (cur_data->header.type != CAIRO_PATH_MOVE_TO) continue;
@@ -50,27 +64,61 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 				y - points[i - 1].y,
 				x - points[i - 1].x
 			) - M_PI / 2;
+			for (int i = 0; i < path_len; i++) intersect_points[i].x = NAN;
 
 			i++;
 		}
 		cur_data = path_data;
 
 		for (i = 0; i < num_points; i++) {
-			double angle1 = norm_angles[(i - 1 + num_points) % num_points];
-			double angle2 = norm_angles[i];
-			if (angle2 < angle1) angle2 += M_PI * 2;
-			double diff = angle2 - angle1;
+			int next_i = (i + 1) % num_points;
 
-			corner_angles[i] = angle1 + diff / 2.;
+			line_starts[i] = ((DPoint) {
+				points[i].x + cos(norm_angles[i]) * nube_config.glow_size,
+				points[i].y + sin(norm_angles[i]) * nube_config.glow_size
+			});
+
+			line_ends[i] = ((DPoint) {
+				points[next_i].x + cos(norm_angles[i]) * nube_config.glow_size,
+				points[next_i].y + sin(norm_angles[i]) * nube_config.glow_size
+			});
 		}
 
 		for (i = 0; i < num_points; i++) {
+			int last_i = (i - 1 + num_points) % num_points;
 			int next_i = (i + 1) % num_points;
+
+			if (isnan(intersect_points[i].x)) {
+				intersect_points[i] = _line_intersect(
+					line_starts[last_i].x,
+					line_starts[last_i].y,
+					line_ends[last_i].x,
+					line_ends[last_i].y,
+					line_starts[i].x,
+					line_starts[i].y,
+					line_ends[i].x,
+					line_ends[i].y
+				);
+			}
+
+			if (isnan(intersect_points[next_i].x)) {
+				intersect_points[next_i] = _line_intersect(
+					line_starts[i].x,
+					line_starts[i].y,
+					line_ends[i].x,
+					line_ends[i].y,
+					line_starts[next_i].x,
+					line_starts[next_i].y,
+					line_ends[next_i].x,
+					line_ends[next_i].y
+				);
+			}
+
 			cairo_mesh_pattern_begin_patch(result);
 			cairo_mesh_pattern_move_to(result, points[next_i].x, points[next_i].y);
 			cairo_mesh_pattern_line_to(result, points[i].x, points[i].y);
-			cairo_mesh_pattern_line_to(result, points[i].x + cos(corner_angles[i]) * nube_config.glow_size, points[i].y + sin(corner_angles[i]) * nube_config.glow_size);
-			cairo_mesh_pattern_line_to(result, points[next_i].x + cos(corner_angles[next_i]) * nube_config.glow_size, points[next_i].y + sin(corner_angles[next_i]) * nube_config.glow_size);
+			cairo_mesh_pattern_line_to(result, intersect_points[i].x, intersect_points[i].y);
+			cairo_mesh_pattern_line_to(result, intersect_points[next_i].x, intersect_points[next_i].y);
 
 			cairo_mesh_pattern_set_corner_color_rgba(result, 0, 1, 1, 1, 0.4);
 			cairo_mesh_pattern_set_corner_color_rgba(result, 1, 1, 1, 1, 0.4);
@@ -80,14 +128,10 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 		}
 	}
 
-	free(norm_angles);
-	free(corner_angles);
-	free(points);
-
 	return result;
 }
 
-void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, NubePanelConfig *panel_config) {
+void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, gfloat width, gfloat height, NubePanelConfig *panel_config) {
 	cairo_save(cr);
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_paint(cr);

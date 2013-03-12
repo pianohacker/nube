@@ -12,8 +12,8 @@ ClutterActor* nube_panel_new(gfloat x, gfloat y, gfloat hidden_x_shift, gfloat h
 	clutter_actor_set_size(panel, width + nube_config.glow_size * 2, height + nube_config.glow_size * 2);
 	clutter_actor_set_position(
 		panel,
-		x + hidden_x_shift * (width + nube_config.glow_size),
-		y + hidden_y_shift * (height + nube_config.glow_size)
+		x + hidden_x_shift * (width) - nube_config.glow_size,
+		y + hidden_y_shift * (height) - nube_config.glow_size
 	);
 
 	/*for (int i = 0; i < MAX_WIDGETS_SIZE && options->widget_opts[i].type; i++) {*/
@@ -22,8 +22,8 @@ ClutterActor* nube_panel_new(gfloat x, gfloat y, gfloat hidden_x_shift, gfloat h
 
 	ClutterPoint *shown_point = clutter_point_alloc();
 	clutter_point_init(shown_point,
-		x + hidden_x_shift * nube_config.glow_size,
-		y + hidden_y_shift * nube_config.glow_size
+		x - nube_config.glow_size,
+		y - nube_config.glow_size
 	);
 	g_object_set_data(G_OBJECT(panel), "shown_point", shown_point);
 

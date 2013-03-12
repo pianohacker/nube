@@ -58,9 +58,18 @@ static void _appearance_start_tag(
 	g_free(value);
 }
 
+static void _appearance_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	if (strcmp(name, "appearance") == 0) gsdl_parser_context_pop(context);
+}
+
 static GSDLParser appearance_parser = {
 	_appearance_start_tag,
-	NULL,
+	_appearance_end_tag,
 	_root_error_handler
 };
 
@@ -101,9 +110,18 @@ static void _behavior_start_tag(
 	g_free(value);
 }
 
+static void _behavior_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	if (strcmp(name, "behavior") == 0) gsdl_parser_context_pop(context);
+}
+
 static GSDLParser behavior_parser = {
 	_behavior_start_tag,
-	NULL,
+	_behavior_end_tag,
 	_root_error_handler
 };
 
@@ -117,18 +135,18 @@ static void _panel_shape_start_tag(
 		GError **err
 	) {
 	GValue *x_value, *y_value;
-	NubePanelConfig panel_config = *(NubePanelConfig*) user_data;
+	NubePanelConfig *panel_config = (NubePanelConfig*) user_data;
 
 	if (strcmp(name, "content") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_DOUBLE, &x_value, G_TYPE_DOUBLE, &y_value, GSDL_GTYPE_END)) return;
 
 		gdouble px = g_value_get_double(x_value), py = g_value_get_double(y_value);
 
-		if (px > panel_config.shape_max_x) panel_config.shape_max_x = px;
-		if (py > panel_config.shape_max_y) panel_config.shape_max_y = py;
+		if (px > panel_config->shape_max_x) panel_config->shape_max_x = px;
+		if (py > panel_config->shape_max_y) panel_config->shape_max_y = py;
 
-		g_array_append_val(panel_config.shape_elems, px);
-		g_array_append_val(panel_config.shape_elems, py);
+		g_array_append_val(panel_config->shape_elems, px);
+		g_array_append_val(panel_config->shape_elems, py);
 
 		g_free(x_value);
 		g_free(y_value);
@@ -144,9 +162,18 @@ static void _panel_shape_start_tag(
 	}
 }
 
+static void _panel_shape_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	if (strcmp(name, "shape") == 0) gsdl_parser_context_pop(context);
+}
+
 static GSDLParser panel_shape_parser = {
 	_panel_shape_start_tag,
-	NULL,
+	_panel_shape_end_tag,
 	_root_error_handler
 };
 
@@ -160,36 +187,47 @@ static void _panel_widgets_inner_start_tag(
 		GError **err
 	) {
 	GValue *value, *y_value;
-	NubeWidgetConfig widget_config = *(NubeWidgetConfig*) user_data;
+	NubeWidgetConfig *widget_config = (NubeWidgetConfig*) user_data;
 
-	if (strcmp(name, "position")) {
+	if (strcmp(name, "position") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_FLOAT, &value, G_TYPE_FLOAT, &y_value, GSDL_GTYPE_END)) return;
 
-		widget_config.position = clutter_point_alloc();
-		clutter_point_init(widget_config.position, g_value_get_float(value), g_value_get_float(y_value));
+		widget_config->position = clutter_point_alloc();
+		clutter_point_init(widget_config->position, g_value_get_float(value), g_value_get_float(y_value));
 
 		g_free(value);
 		g_free(y_value);
-	} else if (strcmp(name, "pivot_point")) {
+	} else if (strcmp(name, "pivot_point") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_FLOAT, &value, G_TYPE_FLOAT, &y_value, GSDL_GTYPE_END)) return;
 
-		widget_config.pivot_point = clutter_point_alloc();
-		clutter_point_init(widget_config.pivot_point, g_value_get_float(value), g_value_get_float(y_value));
+		widget_config->pivot_point = clutter_point_alloc();
+		clutter_point_init(widget_config->pivot_point, g_value_get_float(value), g_value_get_float(y_value));
 
 		g_free(value);
 		g_free(y_value);
 	} else {
 		if (!gsdl_parser_collect_values(name, values, err, GSDL_GTYPE_ANY, &value, GSDL_GTYPE_END)) return;
 
-		g_datalist_set_data(widget_config.props, name, value);
+		g_datalist_set_data(&widget_config->props, name, value);
 
 		// Value not freed, as left in datalist
 	}
 }
 
+static void _panel_widgets_inner_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	NubeWidgetConfig *widget_config = (NubeWidgetConfig*) user_data;
+
+	if (g_quark_from_string(name) == widget_config->type_id) gsdl_parser_context_pop(context);
+}
+
 static GSDLParser panel_widgets_inner_parser = {
 	_panel_widgets_inner_start_tag,
-	NULL,
+	_panel_widgets_inner_end_tag,
 	_root_error_handler
 };
 
@@ -203,19 +241,21 @@ static void _panel_widgets_start_tag(
 		GError **err
 	) {
 	GValue *value = NULL;
-	NubePanelConfig panel_config = *(NubePanelConfig*) user_data;
+	NubePanelConfig *panel_config = (NubePanelConfig*) user_data;
 
 	NubeWidgetConfig *widget_config = g_new0(NubeWidgetConfig, 1);
-	g_array_append_val(panel_config.widgets, widget_config);
+	g_array_append_val(panel_config->widgets, widget_config);
 
 	widget_config->type_id = g_quark_from_string(name);
 	
-	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "source", &value, GSDL_GTYPE_END)) return;
+	gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "source", &value, GSDL_GTYPE_END);
 
 	if (value) {
 		widget_config->source_id = g_quark_from_string(g_value_get_string(value));
 		g_free(value);
 	}
+
+	g_datalist_init(&widget_config->props);
 
 	gsdl_parser_context_push(context, &panel_widgets_inner_parser, widget_config);
 }
@@ -226,7 +266,7 @@ static void _panel_widgets_end_tag(
 		gpointer user_data,
 		GError **err
 	) {
-	gsdl_parser_context_pop(context);
+	if (strcmp(name, "widgets") == 0) gsdl_parser_context_pop(context);
 }
 
 static GSDLParser panel_widgets_parser = {
@@ -245,22 +285,27 @@ static void _panel_inner_start_tag(
 		GError **err
 	) {
 	GValue *value;
-	NubePanelConfig panel_config = *(NubePanelConfig*) user_data;
+	NubePanelConfig *panel_config = (NubePanelConfig*) user_data;
 
 	if (strcmp(name, "position") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_DOUBLE, &value, GSDL_GTYPE_END)) return;
 
-		panel_config.position = g_value_get_double(value);
+		panel_config->position = g_value_get_double(value);
+
+		g_free(value);
 	} else if (strcmp(name, "shape") == 0) {
 		if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "background", &value, GSDL_GTYPE_END)) return;
 
-		panel_config.background = clutter_color_alloc();
-		clutter_color_from_string(panel_config.background, g_value_get_string(value));
+		panel_config->background = clutter_color_alloc();
+		clutter_color_from_string(panel_config->background, g_value_get_string(value));
 
-		panel_config.shape_elems = g_array_new(FALSE, FALSE, sizeof(double));
+		panel_config->shape_elems = g_array_new(FALSE, FALSE, sizeof(double));
 
 		gsdl_parser_context_push(context, &panel_shape_parser, user_data);
+
+		g_free(value);
 	} else if (strcmp(name, "widgets") == 0) {
+		panel_config->widgets = g_array_new(FALSE, FALSE, sizeof(NubeWidgetConfig*));
 		gsdl_parser_context_push(context, &panel_widgets_parser, user_data);
 	} else {
 		g_set_error(
@@ -271,8 +316,6 @@ static void _panel_inner_start_tag(
 			name
 		);
 	}
-
-	g_free(value);
 }
 
 static void _panel_inner_end_tag(
@@ -281,7 +324,7 @@ static void _panel_inner_end_tag(
 		gpointer user_data,
 		GError **err
 	) {
-	if (strcmp(name, "position") != 0) gsdl_parser_context_pop(context);
+	if (strcmp(name, "top") == 0 || strcmp(name, "left") == 0 || strcmp(name, "right") == 0 || strcmp(name, "bottom") == 0) gsdl_parser_context_pop(context);
 }
 
 static GSDLParser panel_inner_parser = {
@@ -324,7 +367,7 @@ static void _panels_end_tag(
 		gpointer user_data,
 		GError **err
 	) {
-	gsdl_parser_context_pop(context);
+	if (strcmp(name, "panels") == 0) gsdl_parser_context_pop(context);
 }
 
 static GSDLParser panels_parser = {
@@ -360,18 +403,9 @@ static void _root_start_tag(
 	}
 }
 
-static void _root_end_tag(
-		GSDLParserContext *context,
-		const gchar *name,
-		gpointer user_data,
-		GError **err
-	) {
-	gsdl_parser_context_pop(context);
-}
-
 static GSDLParser root_parser = {
 	_root_start_tag,
-	_root_end_tag,
+	NULL,
 	_root_error_handler
 };
 
@@ -385,7 +419,7 @@ bool nube_config_load() {
 	gsdl_parser_context_parse_file(context, rc_name);
 
 	if (parse_err) {
-		g_printerr("Could not load ~/.nube.conf: %s", parse_err->message);
+		g_printerr("Could not load ~/.nube.conf: %s\n", parse_err->message);
 		return false;
 	}
 

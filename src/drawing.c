@@ -14,10 +14,10 @@ static DPoint _line_intersect(
 		double x3, double y3,
 		double x4, double y4
 	) {
-	return ((DPoint) {
+	return (DPoint) {
 		((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4)),
 		((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4)) / ((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
-	});
+	};
 }
 
 static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
@@ -37,8 +37,7 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 		if (cur_data->header.type != CAIRO_PATH_MOVE_TO) continue;
 
 		int num_points = 1;
-		points[0].x = cur_data[1].point.x;
-		points[0].y = cur_data[1].point.y;
+		points[0] = (DPoint) {cur_data[1].point.x, cur_data[1].point.y};
 		
 		cairo_path_data_t *path_data = cur_data + 2;
 		int i = 1;
@@ -73,15 +72,15 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 		for (i = 0; i < num_points; i++) {
 			int next_i = (i + 1) % num_points;
 
-			line_starts[i] = ((DPoint) {
+			line_starts[i] = (DPoint) {
 				points[i].x + cos(norm_angles[i]) * nube_config.glow_size,
 				points[i].y + sin(norm_angles[i]) * nube_config.glow_size
-			});
+			};
 
-			line_ends[i] = ((DPoint) {
+			line_ends[i] = (DPoint) {
 				points[next_i].x + cos(norm_angles[i]) * nube_config.glow_size,
 				points[next_i].y + sin(norm_angles[i]) * nube_config.glow_size
-			});
+			};
 		}
 
 		for (i = 0; i < num_points; i++) {

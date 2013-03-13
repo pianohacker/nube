@@ -11,6 +11,7 @@ add_executable(nube
 	src/linux-info.c
 	src/panel.c
 	src/util.c
+	src/widgets.c
 	src/main.c
 )
 include_directories(${PKG_INCLUDE_DIRS})

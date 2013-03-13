@@ -9,11 +9,17 @@
 
 #define _cairo_clear(cr) cairo_save(cr); cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR); cairo_paint(cr); cairo_restore(cr)
 
+static GData *widget_types = NULL;
+
+typedef struct {
+	ClutterActor* (*init_func)(const NubeWidgetConfig *widget_config);
+	void (*draw_func)(ClutterActor *actor, const NubeWidgetConfig *widget_config);
+} _NubeWidgetType;
+
 void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
 	double energy, power;
 	nube_sys_get_power(&energy, &power);
 	double energy_used = 1 - energy;
-	ClutterColor fg_color = nube_config.fg;
 	ClutterColor partial_color = WIDGET_PARTIAL_COLOR;
 
 	_cairo_clear(cr);
@@ -27,7 +33,7 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 		);
 		cairo_fill(cr);
 
-		clutter_cairo_set_source_color(cr, fg_color);
+		clutter_cairo_set_source_color(cr, nube_config.fg);
 
 		cairo_rectangle(cr,
 			width * .3, height * energy_used,
@@ -55,7 +61,7 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 		);
 		cairo_fill(cr);
 
-		clutter_cairo_set_source_color(cr, fg_color);
+		clutter_cairo_set_source_color(cr, nube_config.fg);
 
 		cairo_rectangle(cr,
 			0, height * energy_used,
@@ -81,7 +87,7 @@ void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, co
 }
 
 void nube_update_widget(ClutterActor *widget, const NubeWidgetConfig *widget_config) {
-	char **config_parts = g_strsplit_set(opts->config, "\n", -1);
+	/*char **config_parts = g_strsplit_set(opts->config, "\n", -1);
 	char buffer[64];
 	double energy, power, usage;
 	time_t local;
@@ -111,14 +117,14 @@ void nube_update_widget(ClutterActor *widget, const NubeWidgetConfig *widget_con
 		case WIDGET_END:
 		default:
 			return;
-	}
+	}*/
 }
 
 static void _canvas_resize_cb(ClutterActor *actor, GParamSpec *spec, ClutterCanvas *canvas) {
 	clutter_canvas_set_size(canvas, clutter_actor_get_width(actor), clutter_actor_get_height(actor));
 }
 
-static ClutterActor* _margined_canvas_new(int margin, GCallback draw_cb, const NubeWidgetOptions *opts) {
+/*static ClutterActor* _margined_canvas_new(int margin, GCallback draw_cb, const NubeWidgetOptions *opts) {
 	ClutterActor *widget = clutter_actor_new();
 
 	ClutterMargin margins;
@@ -131,67 +137,107 @@ static ClutterActor* _margined_canvas_new(int margin, GCallback draw_cb, const N
 	clutter_actor_set_content(widget, content);
 
 	return widget;
+}*/
+
+ClutterActor* _text_init(const NubeWidgetConfig *widget_config) {
+	ClutterActor *widget = clutter_text_new();
+	clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
+	clutter_text_set_color(CLUTTER_TEXT(widget), nube_config.fg);
+
+	return widget;
 }
 
-void nube_add_widget(ClutterLayoutManager *layout, const NubeWidgetOptions *opts) {
-	ClutterActor *widget;
-	ClutterColor fg_color = FG_COLOR;
-	char **config_parts = g_strsplit_set(opts->config, "\n", -1);
+void _text_draw(ClutterActor *actor, const NubeWidgetConfig *widget_config) {
+}
 
-	switch (opts->type) {
-		case WIDGET_CLOCK:
-			widget = clutter_text_new();
-			clutter_text_set_font_name(CLUTTER_TEXT(widget), config_parts[1] ? config_parts[1] : DEFAULT_FONT);
-			clutter_text_set_color(CLUTTER_TEXT(widget), &fg_color);
-			clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
-			break;
-		case WIDGET_BATTERY_BAR:
-			widget = _margined_canvas_new(strtod(config_parts[1], NULL), G_CALLBACK(nube_draw_battery), opts);
+ClutterActor* _vertical_bar_init(const NubeWidgetConfig *widget_config) {
+	ClutterActor *widget = clutter_text_new();
 
-			g_object_set(widget, "natural-width", strtod(config_parts[0], NULL), NULL);
-			clutter_actor_set_request_mode(widget, CLUTTER_REQUEST_HEIGHT_FOR_WIDTH);
-			break;
-		case WIDGET_CPU_BAR:
-			widget = _margined_canvas_new(strtod(config_parts[1], NULL), G_CALLBACK(nube_draw_cpu), opts);
+	return widget;
+}
 
-			g_object_set(widget, "natural-width", strtod(config_parts[0], NULL), NULL);
-			clutter_actor_set_request_mode(widget, CLUTTER_REQUEST_HEIGHT_FOR_WIDTH);
-			break;
-		case WIDGET_BATTERY_TEXT:
-		case WIDGET_CPU_TEXT:
-			widget = clutter_text_new();
-			clutter_text_set_font_name(CLUTTER_TEXT(widget), config_parts[0] ? config_parts[0] : DEFAULT_FONT);
-			clutter_text_set_color(CLUTTER_TEXT(widget), &fg_color);
-			clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
-			clutter_actor_set_request_mode(widget, CLUTTER_REQUEST_WIDTH_FOR_HEIGHT);
-			break;
-		case WIDGET_END:
-		default:
-			return;
+void _vertical_bar_draw(ClutterActor *actor, const NubeWidgetConfig *widget_config) {
+}
+
+void _widget_add_property(GQuark prop_id, GValue *value, ClutterActor *widget) {
+	GObjectClass *klass = G_OBJECT_GET_CLASS(G_OBJECT(widget));
+	GParamSpec *param_spec;
+	const gchar *raw_prop = g_quark_to_string(prop_id);
+	gchar prop[strlen(raw_prop)+1];
+	int i;
+
+	for (i = 0; raw_prop[i]; i++) {
+		if (raw_prop[i] == '_') {
+			prop[i] = '-';
+		} else {
+			prop[i] = raw_prop[i];
+		}
 	}
 
-	g_object_set_data(G_OBJECT(widget), "widget_options", (NubeWidgetOptions*) opts);
-	clutter_actor_set_x_expand(widget, opts->x_expand);
-	clutter_actor_set_y_expand(widget, opts->y_expand);
-	clutter_actor_set_x_align(widget, opts->x_align);
-	clutter_actor_set_y_align(widget, opts->y_align);
-	clutter_grid_layout_attach(
-		CLUTTER_GRID_LAYOUT(layout), widget,
-		opts->column,
-		opts->row,
-		opts->width,
-		opts->height
-	);
-	nube_update_widget(widget, opts);
+	prop[i] = '\0';
+
+	if (strcmp(prop, "position") == 0 || strcmp(prop, "pivot-point") == 0) {
+		g_object_set(G_OBJECT(widget), prop, value, NULL);
+	} else if ((param_spec = g_object_class_find_property(klass, prop))) {
+		g_debug("Setting %s.%s to %s:%s", G_OBJECT_TYPE_NAME(widget), prop, g_type_name(G_VALUE_TYPE(value)), g_strdup_value_contents(value));
+
+		if (G_VALUE_TYPE(value) != param_spec->value_type && !g_value_type_transformable(G_VALUE_TYPE(value), param_spec->value_type)) {
+			g_printerr("Property %s.%s expects %s, got %s\n",
+				G_OBJECT_TYPE_NAME(widget),
+				prop,
+				g_type_name(param_spec->value_type),
+				g_type_name(G_VALUE_TYPE(value))
+			);
+			exit(1);
+		}
+
+		g_object_set_property(G_OBJECT(widget), prop, value);
+	} else {
+		g_debug("Unknown property %s.%s found while creating widget", G_OBJECT_TYPE_NAME(widget), prop);
+		return;
+	}
+}
+
+void nube_widget_add(ClutterActor *panel, const NubeWidgetConfig *widget_config) {
+	_NubeWidgetType *widget_type = g_datalist_id_get_data(&widget_types, widget_config->type_id);
+
+	if (widget_type == NULL) {
+		g_printerr("Unknown widget type: %s\n", g_quark_to_string(widget_config->type_id));
+		exit(1);
+	}
+
+	ClutterActor *widget = widget_type->init_func(widget_config);
+
+	g_datalist_foreach((GData**) &widget_config->props, (GDataForeachFunc) _widget_add_property, widget);
+
+	g_object_set_data(G_OBJECT(widget), "widget_options", (NubeWidgetConfig*) widget_config);
+	/*nube_update_widget(widget, opts);*/
+}
+
+void nube_widget_type_register(
+		const gchar *name,
+		ClutterActor* (*init_func)(const NubeWidgetConfig *widget_config),
+		void (*draw_func)(ClutterActor *actor, const NubeWidgetConfig *widget_config)
+	) {
+	_NubeWidgetType *type_entry = g_new0(_NubeWidgetType, 1);
+	type_entry->init_func = init_func;
+	type_entry->draw_func = draw_func;
+
+	g_datalist_set_data(&widget_types, name, type_entry);
+}
+
+void nube_widget_types_init() {
+	nube_widget_type_register("text", _text_init, _text_draw);
+	nube_widget_type_register("vertical_bar", _vertical_bar_init, _vertical_bar_draw);
 }
 
 void nube_update_all(ClutterActor *container) {
 	ClutterActor *child;
 	ClutterActorIter iter;
 
-	clutter_actor_iter_init(&iter, clutter_actor_get_first_child(container));
+	clutter_actor_iter_init(&iter, container);
 	while (clutter_actor_iter_next(&iter, &child)) {
-		const NubeWidgetOptions *opts = g_object_get_data(G_OBJECT(child), "widget_options");
-		if (opts != NULL) nube_update_widget(child, opts);
+		/*const NubeWidgetOptions *opts = g_object_get_data(G_OBJECT(child), "widget_options");
+		if (opts != NULL) nube_update_widget(child, opts);*/
 	}
 }

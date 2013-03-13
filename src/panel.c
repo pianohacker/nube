@@ -16,9 +16,11 @@ ClutterActor* nube_panel_new(gfloat x, gfloat y, gfloat hidden_x_shift, gfloat h
 		y + hidden_y_shift * (height) - nube_config.glow_size
 	);
 
-	/*for (int i = 0; i < MAX_WIDGETS_SIZE && options->widget_opts[i].type; i++) {*/
-		/*nube_add_widget(layout, &options->widget_opts[i]);*/
-	/*}*/
+	if (panel_config->widgets) {
+		for (int i = 0; i < panel_config->widgets->len; i++) {
+			nube_widget_add(panel, g_array_index(panel_config->widgets, NubeWidgetConfig*, i));
+		}
+	}
 
 	ClutterPoint *shown_point = clutter_point_alloc();
 	clutter_point_init(shown_point,

@@ -164,6 +164,7 @@ int main(int argc, char **argv) {
 	clutter_x11_set_use_argb_visual(TRUE);
 	if (clutter_init(&argc, &argv) != CLUTTER_INIT_SUCCESS) return 1;
 
+	nube_widget_types_init();
 	if (!nube_config_load()) return 1;
 
 	nube.show_trans = clutter_transition_group_new();

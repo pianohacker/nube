@@ -16,6 +16,9 @@ typedef struct {
 	void (*draw_func)(ClutterActor *actor, const NubeWidgetConfig *widget_config);
 } _NubeWidgetType;
 
+void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
+}
+
 void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
 	double energy, power;
 	nube_sys_get_power(&energy, &power);
@@ -124,20 +127,16 @@ static void _canvas_resize_cb(ClutterActor *actor, GParamSpec *spec, ClutterCanv
 	clutter_canvas_set_size(canvas, clutter_actor_get_width(actor), clutter_actor_get_height(actor));
 }
 
-/*static ClutterActor* _margined_canvas_new(int margin, GCallback draw_cb, const NubeWidgetOptions *opts) {
+static ClutterActor* _canvas_widget_new(GCallback draw_cb, const NubeWidgetConfig *widget_config) {
 	ClutterActor *widget = clutter_actor_new();
 
-	ClutterMargin margins;
-	margins.top = margins.right = margins.bottom = margins.left = margin;
-	clutter_actor_set_margin(widget, &margins);
-
 	ClutterContent *content = clutter_canvas_new();
-	g_signal_connect(content, "draw", draw_cb, (NubeWidgetOptions*) opts);
+	g_signal_connect(content, "draw", draw_cb, (NubeWidgetConfig*) widget_config);
 	g_signal_connect(widget, "notify::allocation", G_CALLBACK(_canvas_resize_cb), content);
 	clutter_actor_set_content(widget, content);
 
 	return widget;
-}*/
+}
 
 ClutterActor* _text_init(const NubeWidgetConfig *widget_config) {
 	ClutterActor *widget = clutter_text_new();
@@ -151,7 +150,7 @@ void _text_draw(ClutterActor *actor, const NubeWidgetConfig *widget_config) {
 }
 
 ClutterActor* _vertical_bar_init(const NubeWidgetConfig *widget_config) {
-	ClutterActor *widget = clutter_text_new();
+	ClutterActor *widget = _canvas_widget_new(G_CALLBACK(_vertical_bar_render), widget_config);
 
 	return widget;
 }
@@ -176,9 +175,7 @@ void _widget_add_property(GQuark prop_id, GValue *value, ClutterActor *widget) {
 
 	prop[i] = '\0';
 
-	if (strcmp(prop, "position") == 0 || strcmp(prop, "pivot-point") == 0) {
-		g_object_set(G_OBJECT(widget), prop, value, NULL);
-	} else if ((param_spec = g_object_class_find_property(klass, prop))) {
+	if ((param_spec = g_object_class_find_property(klass, prop))) {
 		g_debug("Setting %s.%s to %s:%s", G_OBJECT_TYPE_NAME(widget), prop, g_type_name(G_VALUE_TYPE(value)), g_strdup_value_contents(value));
 
 		if (G_VALUE_TYPE(value) != param_spec->value_type && !g_value_type_transformable(G_VALUE_TYPE(value), param_spec->value_type)) {
@@ -210,7 +207,17 @@ void nube_widget_add(ClutterActor *panel, const NubeWidgetConfig *widget_config)
 
 	g_datalist_foreach((GData**) &widget_config->props, (GDataForeachFunc) _widget_add_property, widget);
 
+	if (widget_config->position) {
+		clutter_actor_set_position(widget, widget_config->position->x + nube_config.glow_size, widget_config->position->y + nube_config.glow_size);
+	}
+
+	if (widget_config->pivot_point) {
+		clutter_actor_set_pivot_point(widget, widget_config->pivot_point->x, widget_config->pivot_point->y);
+	}
+
 	g_object_set_data(G_OBJECT(widget), "widget_options", (NubeWidgetConfig*) widget_config);
+
+	clutter_actor_add_child(panel, widget);
 	/*nube_update_widget(widget, opts);*/
 }
 

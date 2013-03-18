@@ -24,8 +24,7 @@ void _cpu_init(_NubeSource *source) {
 }
 
 void _cpu_update(_NubeSource *source) {
-	double usage;
-	nube_sys_get_cpu(&usage);
+	double usage = nube_sys_get_cpu();
 	_VALUE_SET_DOUBLE(value, usage);
 }
 

@@ -3,7 +3,6 @@
 
 #include "config.h"
 
-void nube_widget_update(ClutterActor *widget, NubeWidgetConfig *widget_config);
 void nube_widget_add(ClutterActor *panel, const NubeWidgetConfig *widget_config);
 
 void nube_widget_type_register(const gchar *name, ClutterActor* (*init_func)(const NubeWidgetConfig *widget_config), void (*draw_func)(ClutterActor *actor, const NubeWidgetConfig *widget_config));

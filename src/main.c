@@ -10,6 +10,7 @@
 #include "config.h"
 #include "drawing.h"
 #include "panel.h"
+#include "sources.h"
 #include "util.h"
 #include "widgets.h"
 
@@ -30,10 +31,11 @@ struct {
 char *runtime_path;
 
 gboolean nube_update_widgets(gpointer user_data) {
-	/*nube_update_all(nube.top_panel);
+	nube_sources_update();
+	nube_update_all(nube.top_panel);
 	nube_update_all(nube.right_panel);
 	nube_update_all(nube.bottom_panel);
-	nube_update_all(nube.left_panel);*/
+	nube_update_all(nube.left_panel);
 
 	return TRUE;
 }
@@ -167,6 +169,7 @@ int main(int argc, char **argv) {
 	nube_sources_init();
 	nube_widget_types_init();
 	if (!nube_config_load()) return 1;
+	nube_sources_start(nube_config.referenced_sources);
 
 	nube.show_trans = clutter_transition_group_new();
 	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.show_trans), nube_config.show_time);

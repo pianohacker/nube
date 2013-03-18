@@ -252,6 +252,7 @@ static void _panel_widgets_start_tag(
 
 	if (value) {
 		widget_config->source_id = g_quark_from_string(g_value_get_string(value));
+		g_hash_table_add(nube_config.referenced_sources, GINT_TO_POINTER(widget_config->source_id));
 		g_free(value);
 	}
 
@@ -391,6 +392,7 @@ static void _root_start_tag(
 	} else if (strcmp(name, "behavior") == 0) {
 		gsdl_parser_context_push(context, &behavior_parser, NULL);
 	} else if (strcmp(name, "panels") == 0) {
+		nube_config.referenced_sources = g_hash_table_new(g_direct_hash, g_direct_equal);
 		gsdl_parser_context_push(context, &panels_parser, NULL);
 	} else {
 		g_set_error(

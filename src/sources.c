@@ -30,7 +30,7 @@ void _init_source(gpointer key, GQuark source_id, gpointer user_data) {
 #include "default_sources.c"
 
 void nube_sources_start(GHashTable *referenced_sources) {
-	g_hashtable_foreach(referenced_sources, (GHFunc) _init_source, NULL);
+	g_hash_table_foreach(referenced_sources, (GHFunc) _init_source, NULL);
 }
 
 void _update_source(GQuark source_id, _NubeSource *source, gpointer user_data) {
@@ -43,9 +43,9 @@ void nube_sources_update() {
 
 bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
 	va_list args;
-	va_start(args);
+	va_start(args, item_id);
 
-	_NubeSource *source = g_datalist_id_get_data(&used_source, source_id);
+	_NubeSource *source = g_datalist_id_get_data(&used_sources, source_id);
 	// As all known sources should have been setup in _sources_start,
 	// this is a programming error in the widget
 	g_return_val_if_fail(source != NULL, false);
@@ -55,9 +55,11 @@ bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
 	// is fine and shouldn't generate a critical log
 	if (value == NULL) return false;
 
-	gchar *err;
-	G_VALUE_LCOPY(value, args, 0, err);
+	gchar *err = NULL;
+	G_VALUE_LCOPY(value, args, 0, &err);
 	g_return_val_if_fail(err == NULL, false);
 
 	va_end(args);
+
+	return true;
 }

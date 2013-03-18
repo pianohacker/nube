@@ -10,6 +10,7 @@ add_executable(nube
 	src/drawing.c
 	src/linux-info.c
 	src/panel.c
+	src/sources.c
 	src/util.c
 	src/widgets.c
 	src/main.c

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "sources.h"
 #include "sys-info.h"
 #include "util.h"
 
@@ -17,36 +18,34 @@ typedef struct {
 } _NubeWidgetType;
 
 void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
-}
-
-void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
-	double energy, power;
-	nube_sys_get_power(&energy, &power);
-	double energy_used = 1 - energy;
+	double value, change_over_hour = 0;
+	nube_source_get(widget_config->source_id, "value", &value);
+	nube_source_get(widget_config->source_id, "change_over_hour", &change_over_hour);
+	double value_left = 1 - value;
 	ClutterColor partial_color = WIDGET_PARTIAL_COLOR;
 
 	_cairo_clear(cr);
 
-	if (power < 0) {
+	if (change_over_hour < 0) {
 		clutter_cairo_set_source_color(cr, &partial_color);
 
 		cairo_rectangle(cr,
 			0, 0,
-			width, height * energy_used
+			width, height * value_left
 		);
 		cairo_fill(cr);
 
 		clutter_cairo_set_source_color(cr, nube_config.fg);
 
 		cairo_rectangle(cr,
-			width * .3, height * energy_used,
-			width * .4, height * MIN(-power, energy)
+			width * .3, height * value_left,
+			width * .4, height * MIN(-change_over_hour, value)
 		);
 		cairo_fill(cr);
 
 		cairo_rectangle(cr,
-			0, height * (energy_used - power),
-			width, height * MAX(0, energy + power)
+			0, height * (value_left - change_over_hour),
+			width, height * MAX(0, value + change_over_hour)
 		);
 		cairo_fill(cr);
 	} else {
@@ -54,73 +53,28 @@ void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height
 
 		cairo_rectangle(cr,
 			0, 0,
-			width, height * MAX(0, energy_used - power)
+			width, height * MAX(0, value_left - change_over_hour)
 		);
 		cairo_fill(cr);
 
 		cairo_rectangle(cr,
-			width * .3, height * MAX(0, energy_used - power),
-			width * .4, height * MIN(power, energy_used)
+			width * .3, height * MAX(0, value_left - change_over_hour),
+			width * .4, height * MIN(change_over_hour, value_left)
 		);
 		cairo_fill(cr);
 
 		clutter_cairo_set_source_color(cr, nube_config.fg);
 
 		cairo_rectangle(cr,
-			0, height * energy_used,
-			width, height * energy
+			0, height * value_left,
+			width, height * value
 		);
 		cairo_fill(cr);
 	}
 }
 
-void nube_draw_cpu(ClutterActor *actor, cairo_t *cr, gint width, gint height, const NubeWidgetConfig *widget_config) {
-	double usage = nube_sys_get_cpu();
-	_cairo_clear(cr);
-
-	clutter_cairo_set_source_color(cr, nube_config.fg);
-
-	g_debug("Drawing %g within %d, %d", usage, width, height);
-
-	cairo_rectangle(cr,
-		0, height * (1 - usage),
-		width, height * usage
-	);
-	cairo_fill(cr);
-}
-
-void nube_update_widget(ClutterActor *widget, const NubeWidgetConfig *widget_config) {
-	/*char **config_parts = g_strsplit_set(opts->config, "\n", -1);
-	char buffer[64];
-	double energy, power, usage;
-	time_t local;
-
-	switch (opts->type) {
-		case WIDGET_CLOCK:
-			time(&local);
-			strftime(buffer, 64, config_parts[0], localtime(&local));
-			clutter_text_set_text(CLUTTER_TEXT(widget), buffer);
-			break;
-		case WIDGET_BATTERY_BAR:
-		case WIDGET_CPU_BAR:
-			clutter_content_invalidate(clutter_actor_get_content(widget));
-			break;
-		case WIDGET_BATTERY_TEXT:
-			nube_sys_get_power(&energy, &power);
-			sprintf(buffer, "%.0f/%.0f%%", energy * 100, fabs(power) * 100);
-
-			clutter_text_set_text(CLUTTER_TEXT(widget), buffer);
-			break;
-		case WIDGET_CPU_TEXT:
-			usage = nube_sys_get_cpu();
-			sprintf(buffer, "%.0f", usage);
-
-			clutter_text_set_text(CLUTTER_TEXT(widget), buffer);
-			break;
-		case WIDGET_END:
-		default:
-			return;
-	}*/
+void nube_widget_update(ClutterActor *widget, const _NubeWidgetType *widget_type, const NubeWidgetConfig *widget_config) {
+	widget_type->draw_func(widget, widget_config);
 }
 
 static void _canvas_resize_cb(ClutterActor *actor, GParamSpec *spec, ClutterCanvas *canvas) {
@@ -146,7 +100,7 @@ ClutterActor* _text_init(const NubeWidgetConfig *widget_config) {
 	return widget;
 }
 
-void _text_draw(ClutterActor *actor, const NubeWidgetConfig *widget_config) {
+void _text_draw(ClutterActor *widget, const NubeWidgetConfig *widget_config) {
 }
 
 ClutterActor* _vertical_bar_init(const NubeWidgetConfig *widget_config) {
@@ -155,7 +109,8 @@ ClutterActor* _vertical_bar_init(const NubeWidgetConfig *widget_config) {
 	return widget;
 }
 
-void _vertical_bar_draw(ClutterActor *actor, const NubeWidgetConfig *widget_config) {
+void _vertical_bar_draw(ClutterActor *widget, const NubeWidgetConfig *widget_config) {
+	clutter_content_invalidate(clutter_actor_get_content(widget));
 }
 
 void _widget_add_property(GQuark prop_id, GValue *value, ClutterActor *widget) {
@@ -215,10 +170,11 @@ void nube_widget_add(ClutterActor *panel, const NubeWidgetConfig *widget_config)
 		clutter_actor_set_pivot_point(widget, widget_config->pivot_point->x, widget_config->pivot_point->y);
 	}
 
-	g_object_set_data(G_OBJECT(widget), "widget_options", (NubeWidgetConfig*) widget_config);
+	g_object_set_data(G_OBJECT(widget), "widget_type", widget_type);
+	g_object_set_data(G_OBJECT(widget), "widget_config", (NubeWidgetConfig*) widget_config);
 
 	clutter_actor_add_child(panel, widget);
-	/*nube_update_widget(widget, opts);*/
+	nube_widget_update(widget, widget_type, widget_config);
 }
 
 void nube_widget_type_register(
@@ -244,7 +200,10 @@ void nube_update_all(ClutterActor *container) {
 
 	clutter_actor_iter_init(&iter, container);
 	while (clutter_actor_iter_next(&iter, &child)) {
-		/*const NubeWidgetOptions *opts = g_object_get_data(G_OBJECT(child), "widget_options");
-		if (opts != NULL) nube_update_widget(child, opts);*/
+		const _NubeWidgetType *widget_type = g_object_get_data(G_OBJECT(child), "widget_type");
+		if (widget_type == NULL) continue;
+		const NubeWidgetConfig *widget_config = g_object_get_data(G_OBJECT(child), "widget_config");
+
+		nube_widget_update(child, widget_type, widget_config);
 	}
 }

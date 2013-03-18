@@ -37,6 +37,8 @@ typedef struct {
 	gint hide_time;
 	gint update_delay;
 
+	GHashTable *referenced_sources;
+
 	NubePanelConfig top_panel;
 	NubePanelConfig left_panel;
 	NubePanelConfig right_panel;

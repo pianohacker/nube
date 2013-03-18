@@ -412,7 +412,10 @@ static GSDLParser root_parser = {
 bool nube_config_load() {
 	char rc_name[PATH_MAX];
 	sprintf(rc_name, "%s/.nube.conf", getenv("HOME"));
-	if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) return false;
+	if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) {
+		g_printerr("Could not find ~/.nube.conf\n");
+		return false;
+	}
 
 	parse_err = NULL;
 	GSDLParserContext *context = gsdl_parser_context_new(&root_parser, NULL);

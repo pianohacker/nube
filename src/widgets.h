@@ -3,7 +3,6 @@
 
 #include "config.h"
 
-extern void nube_draw_battery(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubeWidgetConfig *widget_config);
 void nube_widget_update(ClutterActor *widget, NubeWidgetConfig *widget_config);
 void nube_widget_add(ClutterActor *panel, const NubeWidgetConfig *widget_config);
 

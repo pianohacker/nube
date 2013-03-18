@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
 
 	XGrabKey(
 		display,
-		XKeysymToKeycode(display, XK_Super_L),
+		XKeysymToKeycode(display, nube_config.show_keysym),
 		AnyModifier,
 		root_window,
 		false,

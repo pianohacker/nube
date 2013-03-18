@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <X11/Xlib.h>
 
 #include "config.h"
 
@@ -84,7 +85,21 @@ static void _behavior_start_tag(
 	) {
 	GValue *value;
 
-	if (strcmp(name, "show_time") == 0) {
+	if (strcmp(name, "show_key") == 0) {
+		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_STRING, &value, GSDL_GTYPE_END)) return;
+
+		nube_config.show_keysym = XStringToKeysym(g_value_get_string(value));
+		if (nube_config.show_keysym == NoSymbol) {
+			g_set_error(
+				err,
+				GSDL_SYNTAX_ERROR,
+				GSDL_SYNTAX_ERROR_BAD_LITERAL,
+				"Unknown key: %s",
+				g_value_get_string(value)
+			);
+			return;
+		}
+	} else if (strcmp(name, "show_time") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_INT, &value, GSDL_GTYPE_END)) return;
 
 		nube_config.show_time = g_value_get_int(value);

@@ -4,6 +4,7 @@
 #include <clutter/clutter.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <X11/X.h>
 
 //> Typedefs
 
@@ -33,6 +34,7 @@ typedef struct {
 	ClutterColor *background;
 	ClutterColor *fg;
 	gdouble glow_size;
+	KeySym show_keysym;
 	gint show_time;
 	gint hide_time;
 	gint update_delay;

@@ -7,6 +7,7 @@
 void nube_sources_init();
 void nube_sources_start(GHashTable *referenced_sources);
 void nube_sources_update();
-bool nube_source_get(GQuark source_id, GQuark item, void *output);
+bool nube_source_get_id(GQuark source_id, GQuark item_id, ...);
+#define nube_source_get(source_id, item, ...) nube_source_get_id(source_id, g_quark_from_string(item), __VA_ARGS__)
 
 #endif

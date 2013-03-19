@@ -93,6 +93,23 @@ static ClutterActor* _canvas_widget_new(GCallback draw_cb, NubeWidgetConfig *wid
 	return widget;
 }
 
+ClutterActor* _clock_init(NubeWidgetConfig *widget_config) {
+	ClutterActor *widget = clutter_text_new();
+	clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
+	clutter_text_set_color(CLUTTER_TEXT(widget), nube_config.fg);
+
+	return widget;
+}
+
+void _clock_draw(ClutterActor *widget, NubeWidgetConfig *widget_config) {
+	char buffer[64];
+	time_t local;
+
+	time(&local);
+	strftime(buffer, 64, g_value_get_string(g_datalist_get_data(&widget_config->props, "format")) , localtime(&local));
+	clutter_text_set_text(CLUTTER_TEXT(widget), buffer);
+}
+
 ClutterActor* _text_init(NubeWidgetConfig *widget_config) {
 	ClutterActor *widget = clutter_text_new();
 	clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
@@ -235,6 +252,7 @@ void nube_widget_type_register(
 }
 
 void nube_widget_types_init() {
+	nube_widget_type_register("clock", _clock_init, _clock_draw);
 	nube_widget_type_register("icon", _icon_init, NULL);
 	nube_widget_type_register("text", _text_init, _text_draw);
 	nube_widget_type_register("vertical_bar", _vertical_bar_init, _vertical_bar_draw);

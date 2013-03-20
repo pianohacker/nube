@@ -57,31 +57,47 @@ void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint hei
 
 		clutter_cairo_set_source_color(cr, nube_config.fg);
 
-		cairo_rectangle(cr,
-			width * .3, height * value_left,
-			width * .4, height * MIN(-change_over_hour, value)
-		);
-		cairo_fill(cr);
+		if (value < -change_over_hour) {
+			cairo_rectangle(cr,
+				width * .3, height,
+				width * .4, height * value / change_over_hour * value
+			);
+			cairo_fill(cr);
+		} else {
+			cairo_rectangle(cr,
+				width * .3, height * value_left,
+				width * .4, height * -change_over_hour
+			);
+			cairo_fill(cr);
 
-		cairo_rectangle(cr,
-			0, height * (value_left - change_over_hour),
-			width, height * MAX(0, value + change_over_hour)
-		);
-		cairo_fill(cr);
+			cairo_rectangle(cr,
+				0, height * (value_left - change_over_hour),
+				width, height * value + change_over_hour
+			);
+			cairo_fill(cr);
+		}
 	} else {
 		clutter_cairo_set_source_color(cr, &partial_color);
 
-		cairo_rectangle(cr,
-			0, 0,
-			width, height * MAX(0, value_left - change_over_hour)
-		);
-		cairo_fill(cr);
+		if (value_left < change_over_hour) {
+			cairo_rectangle(cr,
+				width * .3, 0,
+				width * .4, height * value_left / change_over_hour * value_left
+			);
+			cairo_fill(cr);
+		} else {
+			cairo_rectangle(cr,
+				0, 0,
+				width, height * (value_left - change_over_hour)
+			);
+			cairo_fill(cr);
 
-		cairo_rectangle(cr,
-			width * .3, height * MAX(0, value_left - change_over_hour),
-			width * .4, height * MIN(change_over_hour, value_left)
-		);
-		cairo_fill(cr);
+			cairo_rectangle(cr,
+				width * .3, height * (value_left - change_over_hour),
+				width * .4, height * change_over_hour
+			);
+			cairo_fill(cr);
+		}
 
 		clutter_cairo_set_source_color(cr, nube_config.fg);
 

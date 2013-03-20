@@ -6,6 +6,32 @@
 #include "config.h"
 #include "util.h"
 
+double nube_sys_get_memory_usage() {
+	FILE *meminfo = fopen("/proc/meminfo", "r");
+
+	if (!meminfo) return 0;
+
+	char *line = NULL;
+	size_t size;
+	unsigned long mem_total, mem_free, mem_buffers, mem_cached;
+	int elems_found = 0;
+
+	while (!feof(meminfo) && elems_found < 4) {
+		getline(&line, &size, meminfo);
+
+		elems_found += (
+			sscanf(line, "MemTotal: %lu", &mem_total) +
+			sscanf(line, "MemFree: %lu", &mem_free) +
+			sscanf(line, "Buffers: %lu", &mem_buffers) +
+			sscanf(line, "Cached: %lu", &mem_cached)
+		);
+	}
+
+	fclose(meminfo);
+
+	return (mem_total - mem_free - mem_buffers - mem_cached) / (double) mem_total;
+}
+
 void nube_sys_get_power(double *energy, double *power) {
 	char *status = nube_get_str_file(BATTERY_PREFIX "/status");
 	double energy_full = nube_get_num_file(BATTERY_PREFIX "/energy_full");
@@ -24,7 +50,6 @@ void nube_sys_get_power(double *energy, double *power) {
 
 	free(status);
 }
-
 
 double nube_sys_get_cpu() {
 	static unsigned long last_total = 0;

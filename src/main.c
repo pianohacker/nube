@@ -43,6 +43,13 @@ gboolean nube_update_widgets(gpointer user_data) {
 void setup_stage(ClutterStage *stage, gpointer *data) {
 	clutter_actor_get_size(CLUTTER_ACTOR(stage), &nube.width, &nube.height);
 
+	XSetWindowAttributes *win_attrs = g_new(XSetWindowAttributes, 1);
+	win_attrs->override_redirect = True;
+	XChangeWindowAttributes(clutter_x11_get_default_display(), 
+	                        clutter_x11_get_stage_window(CLUTTER_STAGE(nube.stage)), 
+	                        CWOverrideRedirect,
+				            win_attrs);
+
 	nube.top_panel = nube_panel_new(
 		nube_config.top_panel.position, 0,
 		0, -1,

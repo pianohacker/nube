@@ -130,7 +130,7 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 	return result;
 }
 
-void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, gfloat width, gfloat height, NubePanelConfig *panel_config) {
+void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubePanelConfig *panel_config) {
 	cairo_save(cr);
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_paint(cr);

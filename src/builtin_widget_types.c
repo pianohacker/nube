@@ -12,11 +12,13 @@ static ClutterActor* _canvas_widget_new(GCallback draw_cb, NubeWidgetConfig *wid
 }
 
 static void _clock_draw(ClutterActor *widget, NubeWidgetConfig *widget_config) {
-	char buffer[64];
+	char buffer[256];
 	time_t local;
+	const gchar *format;
+	nube_datalist_require_value("clock widget", widget_config->props, "format", G_TYPE_STRING, &format);
 
 	time(&local);
-	strftime(buffer, 64, g_value_get_string(g_datalist_get_data(&widget_config->props, "format")) , localtime(&local));
+	strftime(buffer, 64, format, localtime(&local));
 	clutter_text_set_text(CLUTTER_TEXT(widget), buffer);
 }
 
@@ -25,8 +27,9 @@ static ClutterActor* _text_init(NubeWidgetConfig *widget_config) {
 	clutter_text_set_single_line_mode(CLUTTER_TEXT(widget), TRUE);
 	clutter_text_set_color(CLUTTER_TEXT(widget), nube_config.fg);
 
-	GValue *value;
-	if ((value = g_datalist_get_data(&widget_config->props, "align")) && strcmp(g_value_get_string(value), "right") == 0) {
+	const gchar *align;
+
+	if (nube_datalist_get_value(widget_config->props, "align", G_TYPE_STRING, &align) && strcmp(align, "right") == 0) {
 		// Hack because anchor-from-gravity is deprecated for some retarded reason
 		g_signal_connect(widget, "notify::allocation", G_CALLBACK(_align_right_resize_cb), NULL);
 	}
@@ -122,8 +125,10 @@ static void _vertical_bar_draw(ClutterActor *widget, NubeWidgetConfig *widget_co
 static ClutterActor* _icon_init(NubeWidgetConfig *widget_config) {
 	ClutterActor *widget = clutter_actor_new();
 	char image_filename[PATH_MAX];
+	const gchar *image_base;
+	nube_datalist_require_value("icon widget", widget_config->props, "file", G_TYPE_STRING, &image_base);
 
-	sprintf(image_filename, "%s/.nube/icons/%s", getenv("HOME"), g_value_get_string(g_datalist_get_data(&widget_config->props, "file")));
+	sprintf(image_filename, "%s/.nube/icons/%s", getenv("HOME"), image_base);
 
 	GError *err = NULL;
 	ClutterContent *content = clutter_image_new();

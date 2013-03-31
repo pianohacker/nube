@@ -1,10 +1,10 @@
 #include <glib.h>
-#include <gobject/gvaluecollector.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
 #include "sources.h"
+#include "util.h"
 
 GData *available_sources;
 GData *used_sources;
@@ -53,16 +53,9 @@ bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
 	// this is a programming error in the widget
 	g_return_val_if_fail(source != NULL, false);
 
-	GValue *value = g_datalist_id_get_data(&source->data, item_id);
-	// This just means that the value in question doesn't exist, which
-	// is fine and shouldn't generate a critical log
-	if (value == NULL) return false;
-
-	gchar *err = NULL;
-	G_VALUE_LCOPY(value, args, 0, &err);
-	g_return_val_if_fail(err == NULL, false);
+	bool result = nube_datalist_id_get_value_v(source->data, item_id, 0, args);
 
 	va_end(args);
 
-	return true;
+	return result;
 }

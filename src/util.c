@@ -76,7 +76,7 @@ void nube_datalist_require_value(const gchar *container_name, GData *datalist, c
 	va_list args;
 	va_start(args, type);
 
-	bool success = nube_datalist_id_get_value(datalist, g_quark_from_string(key), type);
+	bool success = nube_datalist_id_get_value_v(datalist, g_quark_from_string(key), type, args);
 	va_end(args);
 
 	if (!success) {

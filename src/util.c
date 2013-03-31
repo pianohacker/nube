@@ -45,7 +45,7 @@ bool nube_datalist_id_get_value_v(GData *datalist, GQuark key_id, GType type, va
 
 	if (type && G_VALUE_TYPE(value) != type) {
 		if (g_value_type_transformable(G_VALUE_TYPE(value), type)) {
-			GValue *new_value = g_slice_new(GValue);
+			GValue *new_value = g_slice_new0(GValue);
 			g_value_init(new_value, type);
 			g_value_transform(value, new_value);
 			value = new_value;

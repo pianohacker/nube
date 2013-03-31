@@ -6,9 +6,9 @@ typedef struct {
 	double y;
 } DPoint;
 
-extern char* nube_get_runtime_path(char *argv0);
+char* nube_get_runtime_path(char *argv0);
 
-extern double nube_get_num_file(const char *path);
-extern char* nube_get_str_file(const char *path);
+double nube_get_num_file(const char *path);
+char* nube_get_str_file(const char *path);
 
 #endif

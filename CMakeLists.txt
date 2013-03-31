@@ -3,7 +3,7 @@ project(nube)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PKG clutter-1.0 clutter-x11-1.0 gsdl-1.0)
-set(CMAKE_C_FLAGS "-std=gnu99 -ggdb3 -Wall")
+set(CMAKE_C_FLAGS "-Werror=implicit-function-declaration -std=gnu99 -ggdb3 -Wall")
 
 add_executable(nube
 	src/config.c

@@ -5,12 +5,13 @@
 #include <stdbool.h>
 
 typedef struct _NubeSource {
-	void (*init_func)(struct _NubeSource *source);
-	void (*update_func)(struct _NubeSource *source);
+	void (*init_func)(struct _NubeSource *source, gpointer user_data);
+	void (*update_func)(struct _NubeSource *source, gpointer user_data);
 	GData *data;
+	gpointer user_data;
 } NubeSource;
 
-void nube_source_register(const gchar *name, void (*init_func)(struct _NubeSource *source), void (*update_func)(struct _NubeSource *source));
+void nube_source_register(const gchar *name, void (*init_func)(struct _NubeSource *source, gpointer user_data), void (*update_func)(struct _NubeSource *source, gpointer user_data), gpointer user_data);
 void nube_builtin_sources_init();
 
 void nube_sources_start(GHashTable *referenced_sources);

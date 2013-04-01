@@ -11,13 +11,13 @@ void nube_source_provider_register(const gchar *name, NubeSourceProvideFunc prov
 
 #include "builtin_source_providers.c"
 
-NubeSource nube_source_provide(const gchar *name, GData *attributes) {
-	NubeSourceProvideFunc provide_func = g_datalist_get_data(&source_providers, name);
+void nube_source_provide(const gchar *name, const gchar *provider_name, GData *attributes) {
+	NubeSourceProvideFunc *provide_func = g_datalist_get_data(&source_providers, provider_name);
 
 	if (!provide_func) {
 		g_printerr("Unknown source provider: %s\n", name);
 		exit(1);
 	}
 
-	return provide_func(source, attributes);
+	provide_func(name, attributes);
 }

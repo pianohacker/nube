@@ -10,16 +10,17 @@
 #define _VALUE_SET_INT(name, value) g_value_set_int(g_datalist_id_get_data(&source->data, g_quark_from_static_string(#name)), value)
 #define _VALUE_SET_DOUBLE(name, value) g_value_set_double(g_datalist_id_get_data(&source->data, g_quark_from_static_string(#name)), value)
 
-void _lm_sensors_init(NubeSource *source) {
+void _lm_sensors_init(NubeSource *source, gpointer user_data) {
 	_VALUE_ALLOC(value, G_TYPE_DOUBLE);
 }
 
-void _lm_sensors_update(NubeSource *source) {
+void _lm_sensors_update(NubeSource *source, gpointer user_data) {
 	double val, max;
+	GData **attributes = (GData**) user_data;
 
-	sensors_chip_name *chip_name = g_dataset_get_data(source, "chip_name");
-	sensors_subfeature *subfeature_input = g_dataset_get_data(source, "subfeature_input");
-	sensors_subfeature *subfeature_max = g_dataset_get_data(source, "subfeature_max");
+	sensors_chip_name *chip_name = g_datalist_get_data(attributes, "chip_name");
+	sensors_subfeature *subfeature_input = g_dataset_get_data(attributes, "subfeature_input");
+	sensors_subfeature *subfeature_max = g_dataset_get_data(attributes, "subfeature_max");
 
 	g_return_if_fail(chip_name != NULL);
 	g_return_if_fail(subfeature_input != NULL);
@@ -31,7 +32,8 @@ void _lm_sensors_update(NubeSource *source) {
 	_VALUE_SET_DOUBLE(value, val / max);
 }
 
-NubeSource _lm_sensors_provide_source(GData *attributes) {
+void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
+	GData **user_data = g_slice_new0(GData*);
 	int error;
 	sensors_chip_name input;
 
@@ -78,11 +80,11 @@ NubeSource _lm_sensors_provide_source(GData *attributes) {
 			exit(1);
 	}
 
-	g_dataset_set_data(source, "chip_name", chip_name);
-	g_dataset_set_data(source, "subfeature_input", subfeature_input);
-	g_dataset_set_data(source, "subfeature_max", subfeature_max);
+	g_dataset_set_data(user_data, "chip_name", (gpointer) chip_name);
+	g_dataset_set_data(user_data, "subfeature_input", (gpointer) subfeature_input);
+	g_dataset_set_data(user_data, "subfeature_max", (gpointer) subfeature_max);
 
-	return (NubeSource) {_lm_sensors_init, _lm_sensors_update};
+	nube_source_register(name, _lm_sensors_init, _lm_sensors_update, user_data);
 }
 
 void nube_builtin_source_providers_init() {

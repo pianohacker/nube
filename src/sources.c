@@ -18,15 +18,16 @@ void _init_source(gpointer key, GQuark source_id, gpointer user_data) {
 	}
 
 	g_datalist_init(&source->data);
-	source->init_func(source);
+	source->init_func(source, source->user_data);
 
 	g_datalist_id_set_data(&used_sources, source_id, source);
 }
 
-void nube_source_register(const gchar *name, void (*init_func)(NubeSource *source), void (*update_func)(NubeSource *source)) {
+void nube_source_register(const gchar *name, void (*init_func)(NubeSource *source, gpointer user_data), void (*update_func)(NubeSource *source, gpointer user_data), gpointer user_data) {
 	NubeSource *source = g_slice_new(NubeSource);
 	source->init_func = init_func;
 	source->update_func = update_func;
+	source->user_data = user_data;
 	g_datalist_id_set_data(&available_sources, g_quark_from_static_string(name), source);
 }
 
@@ -37,7 +38,7 @@ void nube_sources_start(GHashTable *referenced_sources) {
 }
 
 void _update_source(GQuark source_id, NubeSource *source, gpointer user_data) {
-	source->update_func(source);
+	source->update_func(source, source->user_data);
 }
 
 void nube_sources_update() {

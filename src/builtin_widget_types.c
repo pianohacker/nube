@@ -169,8 +169,8 @@ static ClutterActor* _icon_init(NubeWidgetConfig *widget_config) {
 }
 
 void nube_builtin_widget_types_init() {
-	nube_widget_type_register("clock", _text_init, _clock_draw);
-	nube_widget_type_register("icon", _icon_init, NULL);
-	nube_widget_type_register("text", _text_init, _text_draw);
-	nube_widget_type_register("vertical_bar", _vertical_bar_init, _vertical_bar_draw);
+	nube_widget_type_register("clock", _text_init, _clock_draw, NULL);
+	nube_widget_type_register("icon", _icon_init, NULL, NULL);
+	nube_widget_type_register("text", _text_init, _text_draw, NULL);
+	nube_widget_type_register("vertical_bar", _vertical_bar_init, _vertical_bar_draw, NULL);
 }

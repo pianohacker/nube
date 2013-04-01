@@ -11,9 +11,10 @@ add_executable(nube
 	src/linux-info.c
 	src/panel.c
 	src/sources.c
+	src/source_providers.c
 	src/util.c
 	src/widgets.c
 	src/main.c
 )
 include_directories(${PKG_INCLUDE_DIRS})
-target_link_libraries(nube m ${PKG_LDFLAGS})
+target_link_libraries(nube m sensors ${PKG_LDFLAGS})

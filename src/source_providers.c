@@ -6,10 +6,12 @@
 static GData *source_providers;
 
 void nube_source_provider_register(const gchar *name, NubeSourceProvideFunc provide_func) {
-	g_datalist_set_data(source_providers, name, provide_func);
+	g_datalist_set_data(&source_providers, name, provide_func);
 }
 
-void nube_source_provide(const gchar *name, NubeSource *source, gchar* const *attr_names, GValue* const *attr_values) {
+#include "builtin_source_providers.c"
+
+NubeSource nube_source_provide(const gchar *name, GData *attributes) {
 	NubeSourceProvideFunc provide_func = g_datalist_get_data(&source_providers, name);
 
 	if (!provide_func) {
@@ -17,6 +19,5 @@ void nube_source_provide(const gchar *name, NubeSource *source, gchar* const *at
 		exit(1);
 	}
 
-	g_datalist_init(&source->data);
-	provide_func(source, attr_names, attr_values);
+	return provide_func(source, attributes);
 }

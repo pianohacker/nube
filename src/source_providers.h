@@ -6,11 +6,11 @@
 
 #include "sources.h"
 
-typedef NubeSource* (NubeSourceProvideFunc)(NubeSource *source, gchar* const *attr_names, GValue* const *attr_values);
+typedef NubeSource (NubeSourceProvideFunc)(GData *attributes);
 
 void nube_source_provider_register(const gchar *name, NubeSourceProvideFunc provide_func);
 void nube_builtin_source_providers_init();
 
-void nube_source_provide(const gchar *name, NubeSource *source, gchar* const *attr_names, GValue* const *attr_values);
+NubeSource nube_source_provide(const gchar *name, GData *attributes);
 
 #endif

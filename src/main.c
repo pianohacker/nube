@@ -11,6 +11,7 @@
 #include "drawing.h"
 #include "panel.h"
 #include "sources.h"
+#include "source_providers.h"
 #include "util.h"
 #include "widgets.h"
 
@@ -173,6 +174,7 @@ int main(int argc, char **argv) {
 	clutter_x11_set_use_argb_visual(TRUE);
 	if (clutter_init(&argc, &argv) != CLUTTER_INIT_SUCCESS) return 1;
 
+	nube_builtin_source_providers_init();
 	nube_builtin_sources_init();
 	nube_builtin_widget_types_init();
 	if (!nube_config_load()) return 1;

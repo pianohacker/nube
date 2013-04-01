@@ -8,6 +8,7 @@
 #include <X11/Xlib.h>
 
 #include "config.h"
+#include "source_providers.h"
 
 NubeGlobalConfig nube_config;
 static GError *parse_err;
@@ -137,6 +138,85 @@ static void _behavior_end_tag(
 static GSDLParser behavior_parser = {
 	_behavior_start_tag,
 	_behavior_end_tag,
+	_root_error_handler
+};
+
+static void _sources_inner_start_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		GValue* const *values,
+		gchar* const *attr_names,
+		GValue* const *attr_values,
+		gpointer user_data,
+		GError **err
+	) {
+	GData **attributes = (GData**) user_data;
+	GValue *value = NULL;
+
+	if (!gsdl_parser_collect_values(name, values, err, GSDL_GTYPE_ANY, &value, GSDL_GTYPE_END)) return;
+
+	g_datalist_set_data(attributes, name, value);
+}
+
+static void _sources_inner_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	GData **attributes = (GData**) user_data;
+
+	if (strcmp(g_datalist_get_data(attributes, "__name"), name) == 0) {
+		nube_source_provide(
+			g_datalist_get_data(attributes, "__name"),
+			g_datalist_get_data(attributes, "__provider"),
+			*attributes
+		);
+
+		gsdl_parser_context_pop(context);
+		g_datalist_clear(attributes);
+	}
+}
+
+static GSDLParser sources_inner_parser = {
+	_sources_inner_start_tag,
+	_sources_inner_end_tag,
+	_root_error_handler
+};
+
+static void _sources_start_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		GValue* const *values,
+		gchar* const *attr_names,
+		GValue* const *attr_values,
+		gpointer user_data,
+		GError **err
+	) {
+	GData **attributes = g_slice_new0(GData*);
+	GValue *value = NULL;
+	
+	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &value, GSDL_GTYPE_END)) return;
+
+	g_datalist_set_data(attributes, "__name", g_strdup(name));
+	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(value));
+	gsdl_parser_context_push(context, &sources_inner_parser, attributes);
+}
+
+static void _sources_end_tag(
+		GSDLParserContext *context,
+		const gchar *name,
+		gpointer user_data,
+		GError **err
+	) {
+	if (strcmp(name, "sources") == 0) {
+		gsdl_parser_context_pop(context);
+	}
+}
+
+static GSDLParser sources_parser = {
+	_sources_start_tag,
+	_sources_end_tag,
 	_root_error_handler
 };
 
@@ -406,6 +486,8 @@ static void _root_start_tag(
 		gsdl_parser_context_push(context, &appearance_parser, NULL);
 	} else if (strcmp(name, "behavior") == 0) {
 		gsdl_parser_context_push(context, &behavior_parser, NULL);
+	} else if (strcmp(name, "sources") == 0) {
+		gsdl_parser_context_push(context, &sources_parser, NULL);
 	} else if (strcmp(name, "panels") == 0) {
 		nube_config.referenced_sources = g_hash_table_new(g_direct_hash, g_direct_equal);
 		gsdl_parser_context_push(context, &panels_parser, NULL);

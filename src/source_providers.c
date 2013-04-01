@@ -15,7 +15,7 @@ void nube_source_provide(const gchar *name, const gchar *provider_name, GData *a
 	NubeSourceProvideFunc *provide_func = g_datalist_get_data(&source_providers, provider_name);
 
 	if (!provide_func) {
-		g_printerr("Unknown source provider: %s\n", name);
+		g_printerr("Unknown source provider: %s\n", provider_name);
 		exit(1);
 	}
 

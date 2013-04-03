@@ -18,16 +18,16 @@ void _lm_sensors_update(NubeSource *source, gpointer user_data) {
 	double val, max;
 	GData **attributes = (GData**) user_data;
 
-	sensors_chip_name *chip_name = g_datalist_get_data(attributes, "chip_name");
-	sensors_subfeature *subfeature_input = g_dataset_get_data(attributes, "subfeature_input");
-	sensors_subfeature *subfeature_max = g_dataset_get_data(attributes, "subfeature_max");
+	sensors_chip_name *chip= g_datalist_get_data(attributes, "chip");
+	sensors_subfeature *subfeature_input = g_datalist_get_data(attributes, "subfeature_input");
+	sensors_subfeature *subfeature_max = g_datalist_get_data(attributes, "subfeature_max");
 
-	g_return_if_fail(chip_name != NULL);
+	g_return_if_fail(chip != NULL);
 	g_return_if_fail(subfeature_input != NULL);
 	g_return_if_fail(subfeature_max != NULL);
 
-	g_return_if_fail(sensors_get_value(chip_name, subfeature_input->number, &val));
-	g_return_if_fail(sensors_get_value(chip_name, subfeature_max->number, &max));
+	g_return_if_fail(sensors_get_value(chip, subfeature_input->number, &val) == 0);
+	g_return_if_fail(sensors_get_value(chip, subfeature_max->number, &max) == 0);
 
 	_VALUE_SET_DOUBLE(value, val / max);
 }
@@ -72,17 +72,19 @@ void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
 		case SENSORS_FEATURE_FAN:
 			subfeature_input = sensors_get_subfeature(chip, feature, SENSORS_SUBFEATURE_FAN_INPUT);
 			subfeature_max = sensors_get_subfeature(chip, feature, SENSORS_SUBFEATURE_FAN_MAX);
+			break;
 		case SENSORS_FEATURE_TEMP:
 			subfeature_input = sensors_get_subfeature(chip, feature, SENSORS_SUBFEATURE_TEMP_INPUT);
 			subfeature_max = sensors_get_subfeature(chip, feature, SENSORS_SUBFEATURE_TEMP_CRIT);
+			break;
 		default:
 			g_printerr("lm-sensors: don't know how to handle feature %s.%s of type: %d\n", chip_name, feature_name, feature->type);
 			exit(1);
 	}
 
-	g_dataset_set_data(user_data, "chip_name", (gpointer) chip_name);
-	g_dataset_set_data(user_data, "subfeature_input", (gpointer) subfeature_input);
-	g_dataset_set_data(user_data, "subfeature_max", (gpointer) subfeature_max);
+	g_datalist_set_data(user_data, "chip", (gpointer) chip);
+	g_datalist_set_data(user_data, "subfeature_input", (gpointer) subfeature_input);
+	g_datalist_set_data(user_data, "subfeature_max", (gpointer) subfeature_max);
 
 	nube_source_register(name, _lm_sensors_init, _lm_sensors_update, user_data);
 }

@@ -15,21 +15,19 @@ void _lm_sensors_init(NubeSource *source, gpointer user_data) {
 }
 
 void _lm_sensors_update(NubeSource *source, gpointer user_data) {
-	double val, max;
+	double val;
 	GData **attributes = (GData**) user_data;
 
-	sensors_chip_name *chip= g_datalist_get_data(attributes, "chip");
+	sensors_chip_name *chip = g_datalist_get_data(attributes, "chip");
 	sensors_subfeature *subfeature_input = g_datalist_get_data(attributes, "subfeature_input");
-	sensors_subfeature *subfeature_max = g_datalist_get_data(attributes, "subfeature_max");
+	double *max = g_datalist_get_data(attributes, "max");
 
 	g_return_if_fail(chip != NULL);
 	g_return_if_fail(subfeature_input != NULL);
-	g_return_if_fail(subfeature_max != NULL);
 
 	g_return_if_fail(sensors_get_value(chip, subfeature_input->number, &val) == 0);
-	g_return_if_fail(sensors_get_value(chip, subfeature_max->number, &max) == 0);
 
-	_VALUE_SET_DOUBLE(value, val / max);
+	_VALUE_SET_DOUBLE(value, val / *max);
 }
 
 void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
@@ -84,7 +82,14 @@ void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
 
 	g_datalist_set_data(user_data, "chip", (gpointer) chip);
 	g_datalist_set_data(user_data, "subfeature_input", (gpointer) subfeature_input);
-	g_datalist_set_data(user_data, "subfeature_max", (gpointer) subfeature_max);
+
+	double *max = g_slice_new0(double);
+
+	if (!nube_datalist_get_value(attributes, "max", G_TYPE_DOUBLE, max)) {
+		g_return_if_fail(subfeature_max != NULL);
+		g_return_if_fail(sensors_get_value(chip, subfeature_max->number, max) == 0);
+	}
+	g_datalist_set_data(user_data, "max", max);
 
 	nube_source_register(name, _lm_sensors_init, _lm_sensors_update, user_data);
 }

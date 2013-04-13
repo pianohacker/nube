@@ -10,6 +10,82 @@
 #define _VALUE_SET_INT(name, value) g_value_set_int(g_datalist_id_get_data(&source->data, g_quark_from_static_string(#name)), value)
 #define _VALUE_SET_DOUBLE(name, value) g_value_set_double(g_datalist_id_get_data(&source->data, g_quark_from_static_string(#name)), value)
 
+#define NM_BUS "org.freedesktop.NetworkManager"
+#define NM_OBJ "/org/freedesktop/NetworkManager"
+#define NM_BASE_INTERFACE "org.freedesktop.NetworkManager"
+
+void _nm_info_init(NubeSource *source, gpointer user_data) {
+}
+
+void _nm_info_update(NubeSource *source, gpointer user_data) {
+	GValue *value = g_datalist_get_data(&source->data, "value");
+
+	if (value == NULL) {
+		g_free(value);
+	}
+
+	GData **attributes = (GData**) user_data;
+
+	void
+}
+
+void _nm_info_provide_source(const gchar *name, GData *attributes) {
+	GData **user_data = g_slice_new0(GData*);
+
+	const gchar *device_name;
+	gchar *device_path = NULL;
+	nube_datalist_require_value("NetworkManager provided source", attributes, "device", G_TYPE_STRING, &device_name);
+
+	GDBusConnection *con = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+	GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(
+		G_BUS_TYPE_SYSTEM,
+		0,
+		NULL,
+		NM_BUS,
+		NM_OBJ,
+		NM_BASE_INTERFACE,
+		NULL,
+		NULL
+	);
+
+	GVariant *devices = g_dbus_proxy_call_sync(
+		proxy,
+		"GetDevices",
+		NULL,
+		G_DBUS_CALL_FLAGS_NONE,
+		-1,
+		NULL,
+		NULL
+	);
+
+	for (gsize_t i = 0; i < g_variant_n_children(devices)) {
+		GDBusProxy *device_proxy = g_dbus_proxy_new_for_bus_sync(
+			G_BUS_TYPE_SYSTEM,
+			0,
+			NULL,
+			NM_BUS,
+			g_variant_get_string(g_variant_get_child_value(devices, i)),
+			NM_BASE_INTERFACE,
+			NULL,
+			NULL
+		);
+
+		if (strcmp(g_variant_get_string(g_dbus_get_cached_property(device_proxy, "Interface"), device_name) == 0) {
+			device_path = g_variant_dup_string(g_variant_get_child_value(devices, i));
+			break;
+		}
+	}
+
+	if (device_path == NULL) {
+		g_printerr("nm-info: invalid device name: %s\n", device_name);
+		exit(1);
+	}
+
+	g_datalist_set_data(user_data, "device_path", device_path);
+
+	nube_source_register(name, _nm_info_init, _nm_info_update, user_data);
+}
+
 void _lm_sensors_init(NubeSource *source, gpointer user_data) {
 	_VALUE_ALLOC(value, G_TYPE_DOUBLE);
 }

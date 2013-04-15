@@ -210,7 +210,12 @@ int main(int argc, char **argv) {
 	);
 	clutter_x11_add_filter((ClutterX11FilterFunc) filter_func, &root_window);
 
+	nube_sources_update();
 	clutter_threads_add_timeout(nube_config.update_delay, nube_update_widgets, NULL);
+
+#ifdef PROFILE_TRIGGERED_EXIT
+	clutter_threads_add_timeout(30000, (GSourceFunc) exit, NULL);
+#endif
 
 	clutter_main();
 

@@ -5,7 +5,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(PKG clutter-1.0 clutter-x11-1.0 gsdl-1.0)
 set(CMAKE_C_FLAGS "-Werror=implicit-function-declaration -std=gnu99 -Wall")
 set(CMAKE_C_FLAGS_DEBUG "-ggdb3")
-set(CMAKE_C_FLAGS_PROFILE "-pg ${CMAKE_C_FLAGS_DEBUG}")
+set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_DEBUG} -pg -DPROFILE_TRIGGERED_EXIT")
 
 add_executable(nube
 	src/config.c

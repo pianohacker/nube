@@ -28,7 +28,7 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 
 	GData **attributes = (GData**) user_data;
 	gchar *property_name = g_strdup(g_datalist_get_data(attributes, "property"));
-	GValue *fallback = g_datalist_get_data(attributes, "fallback");
+	GValue *default_value = g_datalist_get_data(attributes, "default_value");
 	char *divider;
 	const gchar *object_path = g_datalist_get_data(attributes, "device_path");
 	GVariant *result = NULL;
@@ -44,11 +44,17 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 
 		gchar *interface, *internal_property;
 		interface = property_name;
-		internal_property = strrchr(interface, ':');
-		*internal_property++ = '\0';
 
-		divider = strchr(property_name, '.');
-		if (divider == NULL) property_name += strlen(property_name);
+		divider = strchr(property_name, ':');
+		if (divider == NULL) {
+			property_name += strlen(property_name);
+		} else {
+			*divider = '\0';
+			property_name = divider + 1;
+		}
+
+		internal_property = strrchr(interface, '.');
+		*internal_property++ = '\0';
 
 		proxy = g_dbus_proxy_new_for_bus_sync(
 			G_BUS_TYPE_SYSTEM,
@@ -61,16 +67,33 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 			NULL
 		);
 
-		result = g_dbus_proxy_get_cached_property(proxy, internal_property);
-
-		if (!proxy) {
-			g_datalist_set_data(&source->data, "value", fallback);
+		if (!proxy || !(result = g_dbus_proxy_get_cached_property(proxy, internal_property))) {
+			g_datalist_set_data(&source->data, "value", default_value);
 			return;
 		}
 	}
 
 	value = g_new0(GValue, 1);
-	g_dbus_gvariant_to_gvalue(result, value);
+
+	if (strcmp(g_variant_get_type_string(result), "ay") == 0) {
+		g_value_init(value, G_TYPE_STRING);
+		char contents[g_variant_n_children(result)];
+		int i = 0;
+
+		GVariantIter *iter;
+		g_variant_get(result, "ay", &iter);
+
+		while (g_variant_iter_loop(iter, "y", contents + i++));
+
+		g_variant_iter_free(iter);
+
+		contents[i] = '\0';
+
+		g_value_set_string(value, contents);
+	} else {
+		g_dbus_gvariant_to_gvalue(result, value);
+	}
+
 	g_datalist_set_data(&source->data, "value", value);
 }
 
@@ -81,16 +104,16 @@ void _nm_info_provide_source(const gchar *name, GData *attributes) {
 	gchar *device_path = NULL;
 	nube_datalist_require_value("NetworkManager provided source", attributes, "device", G_TYPE_STRING, &device_name);
 	nube_datalist_require_value("NetworkManager provided source", attributes, "property", G_TYPE_STRING, &property_name);
-	GValue *fallback = g_datalist_get_data(&attributes, "fallback");
+	GValue *default_value = g_datalist_get_data(&attributes, "default");
 
-	if (fallback) {
-		GValue *fallback_copy = g_new0(GValue, 1);
-		g_value_init(fallback_copy, G_VALUE_TYPE(fallback));
-		g_value_copy(fallback, fallback_copy);
-		g_datalist_set_data(user_data, "fallback", fallback_copy);
+	if (default_value) {
+		GValue *default_value_copy = g_new0(GValue, 1);
+		g_value_init(default_value_copy, G_VALUE_TYPE(default_value));
+		g_value_copy(default_value, default_value_copy);
+		g_datalist_set_data(user_data, "default_value", default_value_copy);
 	}
 
-	g_datalist_set_data(&attributes, "property", g_strdup(property_name));
+	g_datalist_set_data(user_data, "property", g_strdup(property_name));
 
 	GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(
 		G_BUS_TYPE_SYSTEM,

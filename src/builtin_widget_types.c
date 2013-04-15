@@ -38,6 +38,9 @@ static ClutterActor* _text_init(NubeWidgetConfig *widget_config) {
 }
 
 static void _text_draw(ClutterActor *widget, NubeWidgetConfig *widget_config) {
+	gchar *value;
+	nube_source_get(widget_config->source_id, "value", &value);
+	clutter_text_set_text(CLUTTER_TEXT(widget), value);
 }
 
 void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubeWidgetConfig *widget_config) {

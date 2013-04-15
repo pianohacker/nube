@@ -1,3 +1,5 @@
+#include <gio/gio.h>
+#include <glib.h>
 #include <sensors/error.h>
 #include <sensors/sensors.h>
 #include <stdlib.h>
@@ -25,18 +27,71 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 	}
 
 	GData **attributes = (GData**) user_data;
+	gchar *property_name = g_strdup(g_datalist_get_data(attributes, "property"));
+	GValue *fallback = g_datalist_get_data(attributes, "fallback");
+	char *divider;
+	const gchar *object_path = g_datalist_get_data(attributes, "device_path");
+	GVariant *result = NULL;
+	GDBusProxy *proxy = NULL;
 
-	void
+	while (*property_name) {
+		if (*property_name == ':') property_name++;
+
+		if (result != NULL) {
+			object_path = g_variant_get_string(result, NULL);
+			g_object_unref(proxy);
+		}
+
+		gchar *interface, *internal_property;
+		interface = property_name;
+		internal_property = strrchr(interface, ':');
+		*internal_property++ = '\0';
+
+		divider = strchr(property_name, '.');
+		if (divider == NULL) property_name += strlen(property_name);
+
+		proxy = g_dbus_proxy_new_for_bus_sync(
+			G_BUS_TYPE_SYSTEM,
+			0,
+			NULL,
+			NM_BUS,
+			object_path,
+			g_strdup_printf("%s.%s", NM_BASE_INTERFACE, interface),
+			NULL,
+			NULL
+		);
+
+		result = g_dbus_proxy_get_cached_property(proxy, internal_property);
+
+		if (!proxy) {
+			g_datalist_set_data(&source->data, "value", fallback);
+			return;
+		}
+	}
+
+	value = g_new0(GValue, 1);
+	g_dbus_gvariant_to_gvalue(result, value);
+	g_datalist_set_data(&source->data, "value", value);
 }
 
 void _nm_info_provide_source(const gchar *name, GData *attributes) {
 	GData **user_data = g_slice_new0(GData*);
 
-	const gchar *device_name;
+	const gchar *device_name, *property_name;
 	gchar *device_path = NULL;
 	nube_datalist_require_value("NetworkManager provided source", attributes, "device", G_TYPE_STRING, &device_name);
+	nube_datalist_require_value("NetworkManager provided source", attributes, "property", G_TYPE_STRING, &property_name);
+	GValue *fallback = g_datalist_get_data(&attributes, "fallback");
 
-	GDBusConnection *con = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
+	if (fallback) {
+		GValue *fallback_copy = g_new0(GValue, 1);
+		g_value_init(fallback_copy, G_VALUE_TYPE(fallback));
+		g_value_copy(fallback, fallback_copy);
+		g_datalist_set_data(user_data, "fallback", fallback_copy);
+	}
+
+	g_datalist_set_data(&attributes, "property", g_strdup(property_name));
+
 	GDBusProxy *proxy = g_dbus_proxy_new_for_bus_sync(
 		G_BUS_TYPE_SYSTEM,
 		0,
@@ -48,7 +103,7 @@ void _nm_info_provide_source(const gchar *name, GData *attributes) {
 		NULL
 	);
 
-	GVariant *devices = g_dbus_proxy_call_sync(
+	GVariant *devices = g_variant_get_child_value(g_dbus_proxy_call_sync(
 		proxy,
 		"GetDevices",
 		NULL,
@@ -56,24 +111,27 @@ void _nm_info_provide_source(const gchar *name, GData *attributes) {
 		-1,
 		NULL,
 		NULL
-	);
+	), 0);
 
-	for (gsize_t i = 0; i < g_variant_n_children(devices)) {
+	g_object_unref(proxy);
+
+	for (gsize i = 0; i < g_variant_n_children(devices) && device_path == NULL; i++) {
 		GDBusProxy *device_proxy = g_dbus_proxy_new_for_bus_sync(
 			G_BUS_TYPE_SYSTEM,
 			0,
 			NULL,
 			NM_BUS,
-			g_variant_get_string(g_variant_get_child_value(devices, i)),
-			NM_BASE_INTERFACE,
+			g_variant_get_string(g_variant_get_child_value(devices, i), NULL),
+			NM_BASE_INTERFACE ".Device",
 			NULL,
 			NULL
 		);
 
-		if (strcmp(g_variant_get_string(g_dbus_get_cached_property(device_proxy, "Interface"), device_name) == 0) {
-			device_path = g_variant_dup_string(g_variant_get_child_value(devices, i));
-			break;
+		if (strcmp(g_variant_get_string(g_dbus_proxy_get_cached_property(device_proxy, "Interface"), NULL), device_name) == 0) {
+			device_path = g_variant_dup_string(g_variant_get_child_value(devices, i), NULL);
 		}
+
+		g_object_unref(device_proxy);
 	}
 
 	if (device_path == NULL) {
@@ -173,4 +231,5 @@ void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
 void nube_builtin_source_providers_init() {
 	sensors_init(NULL);
 	nube_source_provider_register("lm-sensors", _lm_sensors_provide_source);
+	nube_source_provider_register("nm-info", _nm_info_provide_source);
 }

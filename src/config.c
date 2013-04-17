@@ -510,10 +510,13 @@ static GSDLParser root_parser = {
 
 bool nube_config_load() {
 	char rc_name[PATH_MAX];
-	sprintf(rc_name, "%s/.nube.conf", getenv("HOME"));
+	sprintf(rc_name, "%s/nube/config.sdl", g_get_user_config_dir());
 	if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) {
-		g_printerr("Could not find ~/.nube.conf\n");
-		return false;
+		sprintf(rc_name, "%s/.nube.conf", getenv("HOME"));
+		if (!g_file_test(rc_name, G_FILE_TEST_IS_REGULAR | G_FILE_TEST_IS_SYMLINK)) {
+			g_printerr("Could not find ~/.nube.conf or %s/nube/config.sdl\n", g_get_user_config_dir());
+			return false;
+		}
 	}
 
 	parse_err = NULL;
@@ -521,7 +524,7 @@ bool nube_config_load() {
 	gsdl_parser_context_parse_file(context, rc_name);
 
 	if (parse_err) {
-		g_printerr("Could not load ~/.nube.conf: %s\n", parse_err->message);
+		g_printerr("Could not load configuration: %s\n", parse_err->message);
 		return false;
 	}
 

@@ -131,7 +131,7 @@ static ClutterActor* _icon_init(NubeWidgetConfig *widget_config) {
 	const gchar *image_base;
 	nube_datalist_require_value("icon widget", widget_config->props, "file", G_TYPE_STRING, &image_base);
 
-	sprintf(image_filename, "%s/.nube/icons/%s", getenv("HOME"), image_base);
+	sprintf(image_filename, "%s/nube/icons/%s", g_get_user_config_dir(), image_base);
 
 	GError *err = NULL;
 	ClutterContent *content = clutter_image_new();

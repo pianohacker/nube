@@ -1,42 +1,61 @@
-# vim: set cindent :
+# vim: set ft=simpledl :
 #
 # This config is working but a bit odd. Base yours off of it, then save it to ~/.nube.conf .
 # In case you're wondering, the config file is in SDL, though we only use a subset of its features.
 #
 
 appearance {
-	// The background for the HUD, displayed over the entire desktop.
-	// This color, along with all others, is in #RRGGBBAA format.
+	# The background for the HUD, displayed over the entire desktop.
+	# This color, along with all others, is in #RRGGBBAA format.
 	background "#D0300332"
 
-	// The default foreground color
+	# The default foreground color
 	fg "#FFFFFFE0"
+
+	# The size of the glow around each panel
 	glow_size 12
 }
 
 behavior {
+	# The key sequence that is pressed to show the HUD
 	show_key "Super_L"
+
+	# The length of the show fade/slide animation, in milliseconds
 	show_time 240
+
+	# The length of the hide fade/slide animation
 	hide_time 384
+
+	# Time between source/widget updates
 	update_delay 1000
 }
 
+# Provided sources.
+# These are sources that are generated from a given provider, given certain parameters.
 sources {
+	# A source generated from lm-sensors, using a particular feature on a certain chip.
+	# To find the name of each, run $ sensors -u
+	# You may have to set them up with $ sudo sensors-detect
 	cpu_temp provider="lm-sensors" {
 		chip "acpitz-virtual-0"
 		feature "temp1"
 	}
 
+	# A particular bit of info from NetworkManager.
+	# These are a bit more difficult to introspect.
 	wifi_ssid provider="nm-info" {
 		device "wlan0"
 		property "Device.Wireless.ActiveAccessPoint:AccessPoint.Ssid"
-		default "Unconnected"
+		default "Unconnected" # What value to substitute if the given property cannot be looked up
 	}
 }
 
 panels {
 	top {
+		# The offset along the relevant side
 		position 0
+
+		# The polygon describing the shape of this panel
 		shape background="#202223A0" {
 			0 0
 			1366 0
@@ -45,10 +64,11 @@ panels {
 		}
 
 		widgets {
-			// Align not needed for clock
 			clock {
+				# The coordinates of the top-left of the clock
 				position 10 10
 				font_name "DejaVu Sans 24"
+				# The format of the clock, in strftime(3) format
 				format "%a, %b %e"
 			}
 
@@ -75,6 +95,7 @@ panels {
 		widgets {
 			icon {
 				position 10 44
+				# These icons are stored on ~/.config/nube/icons/
 				file "bars_12x12.png"
 			}
 
@@ -102,6 +123,9 @@ panels {
 				file "cog_12x12.png"
 			}
 
+			# These vertical bar widgets take two values from their source; their current value and
+			# the amount they will change over the next hour. The part that will appear/disappear
+			# over the next hour is narrowed
 			vertical_bar source="cpu" {
 				position 20 60
 				height 180

@@ -20,6 +20,9 @@ static DPoint _line_intersect(
 	};
 }
 
+// Takes an existing path, and generates glow quads around that path, using its orientation.
+// Each segment of the path is offset `glow_size` pixels along its normal vector, then to create the
+// polygons, the intersection of each pair of offset lines is found.
 static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 	cairo_pattern_t *result = cairo_pattern_create_mesh();
 	cairo_path_data_t *cur_data = path->data;

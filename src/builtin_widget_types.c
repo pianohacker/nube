@@ -51,7 +51,9 @@ void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint hei
 	ClutterColor partial_color = WIDGET_PARTIAL_COLOR;
 
 	_cairo_clear(cr);
-
+	
+	// The math munging below is to handle the narrowing of the amount that will increase/decrease
+	// over the next hour, including when that amount is greater than that remaining
 	if (change_over_hour < 0) {
 		clutter_cairo_set_source_color(cr, &partial_color);
 
@@ -143,6 +145,7 @@ static ClutterActor* _icon_init(NubeWidgetConfig *widget_config) {
 	}
 
 	if (!err) {
+		// Yes, this really is the way to load images...
 		clutter_image_set_data (CLUTTER_IMAGE(content),
 				gdk_pixbuf_get_pixels(pixbuf),
 				gdk_pixbuf_get_has_alpha(pixbuf)

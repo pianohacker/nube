@@ -34,6 +34,7 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 	GVariant *result = NULL;
 	GDBusProxy *proxy = NULL;
 
+	// String munging to walk a chain of properties, where all but the last are object paths
 	while (*property_name) {
 		if (*property_name == ':') property_name++;
 
@@ -76,6 +77,7 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 	value = g_new0(GValue, 1);
 
 	if (strcmp(g_variant_get_type_string(result), "ay") == 0) {
+		// Transform an array of bytes to a string
 		g_value_init(value, G_TYPE_STRING);
 		char contents[g_variant_n_children(result)];
 		int i = 0;
@@ -138,6 +140,7 @@ void _nm_info_provide_source(const gchar *name, GData *attributes) {
 
 	g_object_unref(proxy);
 
+	// Find the device with the given name
 	for (gsize i = 0; i < g_variant_n_children(devices) && device_path == NULL; i++) {
 		GDBusProxy *device_proxy = g_dbus_proxy_new_for_bus_sync(
 			G_BUS_TYPE_SYSTEM,

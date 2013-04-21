@@ -156,7 +156,7 @@ static void _sources_inner_start_tag(
 	if (!gsdl_parser_collect_values(name, values, err, GSDL_GTYPE_ANY, &value, GSDL_GTYPE_END)) return;
 
 	g_datalist_set_data(attributes, name, value);
-}
+	}
 
 static void _sources_inner_end_tag(
 		GSDLParserContext *context,

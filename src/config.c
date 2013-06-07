@@ -198,6 +198,9 @@ static void _sources_start_tag(
 	GValue *value = NULL;
 	
 	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &value, GSDL_GTYPE_END)) return;
+
+	g_datalist_set_data(attributes, "__name", g_strdup(name));
+	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(value));
 	
 	gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &value, GSDL_GTYPE_END);
 
@@ -206,8 +209,6 @@ static void _sources_start_tag(
 		g_free(value);
 	}
 
-	g_datalist_set_data(attributes, "__name", g_strdup(name));
-	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(value));
 	gsdl_parser_context_push(context, &sources_inner_parser, attributes);
 }
 

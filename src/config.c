@@ -170,6 +170,7 @@ static void _sources_inner_end_tag(
 		nube_source_provide(
 			g_datalist_get_data(attributes, "__name"),
 			g_datalist_get_data(attributes, "__provider"),
+			g_datalist_get_data(attributes, "__converter"),
 			*attributes
 		);
 
@@ -197,6 +198,13 @@ static void _sources_start_tag(
 	GValue *value = NULL;
 	
 	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &value, GSDL_GTYPE_END)) return;
+	
+	gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &value, GSDL_GTYPE_END);
+
+	if (value) {
+		g_datalist_set_data(attributes, "__converter", (gchar*) g_value_get_string(value));
+		g_free(value);
+	}
 
 	g_datalist_set_data(attributes, "__name", g_strdup(name));
 	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(value));

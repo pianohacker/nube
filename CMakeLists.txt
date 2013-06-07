@@ -9,6 +9,7 @@ set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_DEBUG} -pg -DPROFILE_TRIGGERED_EXIT")
 
 add_executable(nube
 	src/config.c
+	src/converters.c
 	src/drawing.c
 	src/linux-info.c
 	src/panel.c

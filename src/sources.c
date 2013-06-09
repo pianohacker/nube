@@ -47,7 +47,7 @@ void nube_sources_update() {
 }
 
 void nube_source_set_converter(GQuark source_id, const char *converter) {
-	NubeSource *source = g_datalist_id_get_data(&used_sources, source_id);
+	NubeSource *source = g_datalist_id_get_data(&available_sources, source_id);
 	g_return_if_fail(source != NULL);
 
 	source->converter_id = g_quark_from_string(converter);

@@ -36,6 +36,7 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 
 	// String munging to walk a chain of properties, where all but the last are object paths
 	while (*property_name) {
+		g_debug("Walking property chain: %s", property_name);
 		if (*property_name == ':') property_name++;
 
 		if (result != NULL) {
@@ -57,6 +58,8 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 		internal_property = strrchr(interface, '.');
 		*internal_property++ = '\0';
 
+		g_debug("Getting %s from interface %s, object %s", internal_property, interface, object_path);
+
 		proxy = g_dbus_proxy_new_for_bus_sync(
 			G_BUS_TYPE_SYSTEM,
 			0,
@@ -74,7 +77,7 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 		}
 	}
 
-	value = g_new0(GValue, 1);
+	value = g_slice_new0(GValue);
 
 	if (strcmp(g_variant_get_type_string(result), "ay") == 0) {
 		// Transform an array of bytes to a string
@@ -95,6 +98,8 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 	} else {
 		g_dbus_gvariant_to_gvalue(result, value);
 	}
+
+	g_debug("Result type is %s", g_type_name(G_VALUE_TYPE(value)));
 
 	g_datalist_set_data(&source->data, "value", value);
 }

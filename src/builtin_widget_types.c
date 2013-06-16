@@ -39,14 +39,14 @@ static ClutterActor* _text_init(NubeWidgetConfig *widget_config) {
 
 static void _text_draw(ClutterActor *widget, NubeWidgetConfig *widget_config) {
 	gchar *value;
-	nube_source_get(widget_config->source_id, "value", &value);
+	nube_source_get(widget_config->source_id, "value", G_TYPE_STRING, &value);
 	clutter_text_set_text(CLUTTER_TEXT(widget), value);
 }
 
 void _vertical_bar_render(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubeWidgetConfig *widget_config) {
 	double value, change_over_hour = 0;
-	nube_source_get(widget_config->source_id, "value", &value);
-	nube_source_get(widget_config->source_id, "change_over_hour", &change_over_hour);
+	nube_source_get(widget_config->source_id, "value", G_TYPE_DOUBLE, &value);
+	nube_source_get(widget_config->source_id, "change_over_hour", G_TYPE_DOUBLE, &change_over_hour);
 	double value_left = 1 - value;
 	ClutterColor partial_color = WIDGET_PARTIAL_COLOR;
 

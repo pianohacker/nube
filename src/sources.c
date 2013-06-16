@@ -58,9 +58,9 @@ void nube_source_set_converter(GQuark source_id, const char *converter) {
 	}
 }
 
-bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
+bool nube_source_get_id(GQuark source_id, GQuark item_id, GType type, ...) {
 	va_list args;
-	va_start(args, item_id);
+	va_start(args, type);
 
 	NubeSource *source = g_datalist_id_get_data(&used_sources, source_id);
 	// As all known sources should have been setup in _sources_start,
@@ -72,7 +72,7 @@ bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
 		(*nube_converter_get(source->converter_id))(item_id, value);
 	}
 
-	bool result = nube_datalist_id_get_value_v(source->data, item_id, 0, args);
+	bool result = nube_datalist_id_get_value_v(source->data, item_id, type, args);
 
 	va_end(args);
 

@@ -23,7 +23,9 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 	GValue *value = g_datalist_get_data(&source->data, "value");
 
 	if (value == NULL) {
-		g_free(value);
+		value = g_slice_new0(GValue);
+	} else {
+		g_value_unset(value);
 	}
 
 	GData **attributes = (GData**) user_data;
@@ -72,12 +74,12 @@ void _nm_info_update(NubeSource *source, gpointer user_data) {
 		);
 
 		if (!proxy || !(result = g_dbus_proxy_get_cached_property(proxy, internal_property))) {
-			g_datalist_set_data(&source->data, "value", default_value);
+			g_value_init(value, G_VALUE_TYPE(default_value));
+			g_value_copy(default_value, value);
+			g_datalist_set_data(&source->data, "value", value);
 			return;
 		}
 	}
-
-	value = g_slice_new0(GValue);
 
 	if (strcmp(g_variant_get_type_string(result), "ay") == 0) {
 		// Transform an array of bytes to a string

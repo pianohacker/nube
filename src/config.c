@@ -57,7 +57,7 @@ static void _appearance_start_tag(
 		return;
 	}
 
-	g_free(value);
+	g_slice_free(GValue, value);
 }
 
 static void _appearance_end_tag(
@@ -123,7 +123,7 @@ static void _behavior_start_tag(
 		return;
 	}
 
-	g_free(value);
+	g_slice_free(GValue, value);
 }
 
 static void _behavior_end_tag(
@@ -195,18 +195,17 @@ static void _sources_start_tag(
 		GError **err
 	) {
 	GData **attributes = g_slice_new0(GData*);
-	GValue *value = NULL;
+	GValue *provider_value, *converter_value = NULL;
 	
-	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &value, GSDL_GTYPE_END)) return;
+	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &provider_value, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &converter_value, GSDL_GTYPE_END)) return;
 
 	g_datalist_set_data(attributes, "__name", g_strdup(name));
-	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(value));
-	
-	gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &value, GSDL_GTYPE_END);
+	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(provider_value));
+	g_slice_free(GValue, provider_value);
 
-	if (value) {
-		g_datalist_set_data(attributes, "__converter", (gchar*) g_value_get_string(value));
-		g_free(value);
+	if (converter_value) {
+		g_datalist_set_data(attributes, "__converter", (gchar*) g_value_get_string(converter_value));
+		g_slice_free(GValue, converter_value);
 	}
 
 	gsdl_parser_context_push(context, &sources_inner_parser, attributes);
@@ -252,8 +251,8 @@ static void _panel_shape_start_tag(
 		g_array_append_val(panel_config->shape_elems, px);
 		g_array_append_val(panel_config->shape_elems, py);
 
-		g_free(x_value);
-		g_free(y_value);
+		g_slice_free(GValue, x_value);
+		g_slice_free(GValue, y_value);
 	} else {
 		g_set_error(
 			err,
@@ -299,16 +298,16 @@ static void _panel_widgets_inner_start_tag(
 		widget_config->position = clutter_point_alloc();
 		clutter_point_init(widget_config->position, g_value_get_float(value), g_value_get_float(y_value));
 
-		g_free(value);
-		g_free(y_value);
+		g_slice_free(GValue, value);
+		g_slice_free(GValue, y_value);
 	} else if (strcmp(name, "pivot_point") == 0) {
 		if (!gsdl_parser_collect_values(name, values, err, G_TYPE_FLOAT, &value, G_TYPE_FLOAT, &y_value, GSDL_GTYPE_END)) return;
 
 		widget_config->pivot_point = clutter_point_alloc();
 		clutter_point_init(widget_config->pivot_point, g_value_get_float(value), g_value_get_float(y_value));
 
-		g_free(value);
-		g_free(y_value);
+		g_slice_free(GValue, value);
+		g_slice_free(GValue, y_value);
 	} else {
 		if (!gsdl_parser_collect_values(name, values, err, GSDL_GTYPE_ANY, &value, GSDL_GTYPE_END)) return;
 
@@ -357,7 +356,7 @@ static void _panel_widgets_start_tag(
 	if (value) {
 		widget_config->source_id = g_quark_from_string(g_value_get_string(value));
 		g_hash_table_add(nube_config.referenced_sources, GINT_TO_POINTER(widget_config->source_id));
-		g_free(value);
+		g_slice_free(GValue, value);
 	}
 
 	g_datalist_init(&widget_config->props);
@@ -397,7 +396,7 @@ static void _panel_inner_start_tag(
 
 		panel_config->position = g_value_get_double(value);
 
-		g_free(value);
+		g_slice_free(GValue, value);
 	} else if (strcmp(name, "shape") == 0) {
 		if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "background", &value, GSDL_GTYPE_END)) return;
 
@@ -408,7 +407,7 @@ static void _panel_inner_start_tag(
 
 		gsdl_parser_context_push(context, &panel_shape_parser, user_data);
 
-		g_free(value);
+		g_slice_free(GValue, value);
 	} else if (strcmp(name, "widgets") == 0) {
 		panel_config->widgets = g_array_new(FALSE, FALSE, sizeof(NubeWidgetConfig*));
 		gsdl_parser_context_push(context, &panel_widgets_parser, user_data);

@@ -25,7 +25,7 @@ void _init_source(gpointer key, GQuark source_id, gpointer user_data) {
 }
 
 void nube_source_register(const gchar *name, void (*init_func)(NubeSource *source, gpointer user_data), void (*update_func)(NubeSource *source, gpointer user_data), gpointer user_data) {
-	NubeSource *source = g_slice_new(NubeSource);
+	NubeSource *source = g_slice_new0(NubeSource);
 	source->init_func = init_func;
 	source->update_func = update_func;
 	source->user_data = user_data;
@@ -67,10 +67,9 @@ bool nube_source_get_id(GQuark source_id, GQuark item_id, ...) {
 	// this is a programming error in the widget
 	g_return_val_if_fail(source != NULL, false);
 
-	GValue *old = g_datalist_id_get_data(&source->data, item_id);
-	if (source->converter_id && old) {
-		g_datalist_id_set_data(&source->data, item_id, (*nube_converter_get(source->converter_id))(item_id, old));
-		g_slice_free(GValue, old);
+	GValue *value = g_datalist_id_get_data(&source->data, item_id);
+	if (source->converter_id && value) {
+		(*nube_converter_get(source->converter_id))(item_id, value);
 	}
 
 	bool result = nube_datalist_id_get_value_v(source->data, item_id, 0, args);

@@ -11,7 +11,7 @@ void nube_source_provider_register(const gchar *name, NubeSourceProvideFunc prov
 
 #include "builtin_source_providers.c"
 
-void nube_source_provide(const gchar *name, const gchar *provider_name, const gchar *converter_name, GData *attributes) {
+void nube_source_provide(const gchar *name, const gchar *provider_name, const gchar *converter_name, glong update_delay, GData *attributes) {
 	NubeSourceProvideFunc *provide_func = g_datalist_get_data(&source_providers, provider_name);
 
 	if (!provide_func) {
@@ -23,5 +23,9 @@ void nube_source_provide(const gchar *name, const gchar *provider_name, const gc
 
 	if (converter_name) {
 		nube_source_set_converter(g_quark_from_string(name), converter_name);
+	}
+
+	if (update_delay) {
+		nube_source_set_update_delay(g_quark_from_string(name), update_delay);
 	}
 }

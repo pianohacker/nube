@@ -171,6 +171,7 @@ static void _sources_inner_end_tag(
 			g_datalist_get_data(attributes, "__name"),
 			g_datalist_get_data(attributes, "__provider"),
 			g_datalist_get_data(attributes, "__converter"),
+			GPOINTER_TO_INT(g_datalist_get_data(attributes, "__update_delay")),
 			*attributes
 		);
 
@@ -195,9 +196,14 @@ static void _sources_start_tag(
 		GError **err
 	) {
 	GData **attributes = g_slice_new0(GData*);
-	GValue *provider_value, *converter_value = NULL;
+	GValue *provider_value, *converter_value = NULL, *update_delay_value = NULL;
 	
-	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err, G_TYPE_STRING, "provider", &provider_value, G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &converter_value, GSDL_GTYPE_END)) return;
+	if (!gsdl_parser_collect_attributes(name, attr_names, attr_values, err,
+				G_TYPE_STRING, "provider", &provider_value,
+				G_TYPE_STRING | GSDL_GTYPE_OPTIONAL, "converter", &converter_value,
+				G_TYPE_LONG | GSDL_GTYPE_OPTIONAL, "update_delay", &update_delay_value,
+				GSDL_GTYPE_END
+			)) return;
 
 	g_datalist_set_data(attributes, "__name", g_strdup(name));
 	g_datalist_set_data(attributes, "__provider", (gchar*) g_value_get_string(provider_value));
@@ -206,6 +212,12 @@ static void _sources_start_tag(
 	if (converter_value) {
 		g_datalist_set_data(attributes, "__converter", (gchar*) g_value_get_string(converter_value));
 		g_slice_free(GValue, converter_value);
+	}
+
+	if (update_delay_value) {
+		g_datalist_set_data(attributes, "__update_delay", GINT_TO_POINTER(g_value_get_long(update_delay_value)));
+
+		g_slice_free(GValue, update_delay_value);
 	}
 
 	gsdl_parser_context_push(context, &sources_inner_parser, attributes);

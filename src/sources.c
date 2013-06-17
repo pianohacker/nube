@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "converters.h"
 #include "sources.h"
 #include "util.h"
@@ -26,9 +27,13 @@ void _init_source(gpointer key, GQuark source_id, gpointer user_data) {
 
 void nube_source_register(const gchar *name, void (*init_func)(NubeSource *source, gpointer user_data), void (*update_func)(NubeSource *source, gpointer user_data), gpointer user_data) {
 	NubeSource *source = g_slice_new0(NubeSource);
+
 	source->init_func = init_func;
 	source->update_func = update_func;
 	source->user_data = user_data;
+	source->intervals_delay = 1;
+	source->intervals_left = 1;
+
 	g_datalist_id_set_data(&available_sources, g_quark_from_static_string(name), source);
 }
 
@@ -39,11 +44,32 @@ void nube_sources_start(GHashTable *referenced_sources) {
 }
 
 void _update_source(GQuark source_id, NubeSource *source, gpointer user_data) {
-	source->update_func(source, source->user_data);
+	source->intervals_left--;
+
+	if (source->intervals_left == 0) {
+		source->update_func(source, source->user_data);
+
+		GValue *value;
+		if (source->converter_id && (value = g_datalist_get_data(&source->data, "value"))) {
+			(*nube_converter_get(source->converter_id))(g_quark_from_string("value"), value);
+		}
+
+		source->intervals_left = source->intervals_delay;
+	}
 }
 
 void nube_sources_update() {
 	g_datalist_foreach(&used_sources, (GDataForeachFunc) _update_source, NULL);
+}
+
+void nube_source_set_update_delay(GQuark source_id, glong update_delay) {
+	NubeSource *source = g_datalist_id_get_data(&available_sources, source_id);
+	g_return_if_fail(source != NULL);
+
+	// Intentional integer division, so if the update delay is a non-integer
+	// multiple of the global delay, the source will err on the side of more
+	// frequent updates.
+	source->intervals_delay = update_delay / nube_config.update_delay;
 }
 
 void nube_source_set_converter(GQuark source_id, const char *converter) {
@@ -66,11 +92,6 @@ bool nube_source_get_id(GQuark source_id, GQuark item_id, GType type, ...) {
 	// As all known sources should have been setup in _sources_start,
 	// this is a programming error in the widget
 	g_return_val_if_fail(source != NULL, false);
-
-	GValue *value = g_datalist_id_get_data(&source->data, item_id);
-	if (source->converter_id && value) {
-		(*nube_converter_get(source->converter_id))(item_id, value);
-	}
 
 	bool result = nube_datalist_id_get_value_v(source->data, item_id, type, args);
 

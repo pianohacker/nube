@@ -37,8 +37,18 @@ void _memory_usage_update(NubeSource *source, gpointer user_data) {
 	_VALUE_SET_DOUBLE(value, usage);
 }
 
+void _swap_usage_init(NubeSource *source, gpointer user_data) {
+	_VALUE_ALLOC(value, G_TYPE_DOUBLE);
+}
+
+void _swap_usage_update(NubeSource *source, gpointer user_data) {
+	double usage = nube_sys_get_swap_usage();
+	_VALUE_SET_DOUBLE(value, usage);
+}
+
 void nube_builtin_sources_init() {
 	nube_source_register("battery", _battery_init, _battery_update, NULL);
 	nube_source_register("cpu", _cpu_init, _cpu_update, NULL);
 	nube_source_register("memory_usage", _memory_usage_init, _memory_usage_update, NULL);
+	nube_source_register("swap_usage", _swap_usage_init, _swap_usage_update, NULL);
 }

@@ -32,6 +32,30 @@ double nube_sys_get_memory_usage() {
 	return (mem_total - mem_free - mem_buffers - mem_cached) / (double) mem_total;
 }
 
+double nube_sys_get_swap_usage() {
+	FILE *meminfo = fopen("/proc/meminfo", "r");
+
+	if (!meminfo) return 0;
+
+	char *line = NULL;
+	size_t size;
+	unsigned long swap_total, swap_free;
+	int elems_found = 0;
+
+	while (!feof(meminfo) && elems_found < 2) {
+		getline(&line, &size, meminfo);
+
+		elems_found += (
+			sscanf(line, "SwapTotal: %lu", &swap_total) +
+			sscanf(line, "SwapFree: %lu", &swap_free)
+		);
+	}
+
+	fclose(meminfo);
+
+	return swap_total == 0 ? 0 : ((swap_total - swap_free) / (double) swap_total);
+}
+
 void nube_sys_get_power(double *energy, double *power) {
 	char *status = nube_get_str_file(BATTERY_PREFIX "/status");
 	double energy_full = nube_get_num_file(BATTERY_PREFIX "/energy_full");

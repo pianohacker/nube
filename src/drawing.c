@@ -134,6 +134,8 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 }
 
 void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, gint width, gint height, NubePanelConfig *panel_config) {
+	if (!panel_config->shape_elems) return;
+
 	cairo_save(cr);
 	cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
 	cairo_paint(cr);

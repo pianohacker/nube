@@ -22,6 +22,22 @@ static void convert_nm_ipv4(GQuark id, GValue *value) {
 	g_value_take_string(value, g_strdup_printf("%s/%d", inet_ntoa(addr), netmask));
 }
 
+static void convert_trim_newline(GQuark id, GValue *value) {
+	if (G_VALUE_TYPE(value) != G_TYPE_STRING) {
+		g_debug("Unexpected type of %p: %s", value, g_type_name(G_VALUE_TYPE(value)));
+		return;
+	}
+
+	gchar *contents = (char*) g_value_get_string(value);
+
+	if (contents[strlen(contents) - 1] == '\n') {
+		contents = g_strdup(contents);
+		contents[strlen(contents) - 1] = '\0';
+		g_value_take_string(value, contents);
+	}
+}
+
 void nube_builtin_converters_init() {
 	nube_converter_register("nm-ipv4", convert_nm_ipv4);
+	nube_converter_register("trim-newline", convert_trim_newline);
 }

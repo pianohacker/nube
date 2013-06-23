@@ -16,6 +16,62 @@
 #define NM_OBJ "/org/freedesktop/NetworkManager"
 #define NM_BASE_INTERFACE "org.freedesktop.NetworkManager"
 
+void _command_init(NubeSource *source, gpointer user_data) {
+	_VALUE_ALLOC(value, G_TYPE_STRING);
+}
+
+void _command_update(NubeSource *source, gpointer user_data) {
+	GValue *value = g_datalist_get_data(&source->data, "value");
+
+	int sub_stdout;
+
+	GError *err = NULL;
+	g_spawn_async_with_pipes(
+		NULL,
+		(gchar**) user_data,
+		NULL,
+		G_SPAWN_SEARCH_PATH,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		&sub_stdout,
+		NULL,
+		&err
+	);
+
+	if (err) {
+		g_value_set_string(value, "");
+		g_printerr("%s\n", err->message);
+		exit(1);
+	}
+
+	GString *output = g_string_new(NULL);
+
+	char buf[1024];
+	int len = 0;
+
+	while ((len = read(sub_stdout, buf, 1024)) > 0) {
+		g_string_append_len(output, buf, len);
+	}
+
+	g_value_take_string(value, output->str);
+
+	g_string_free(output, FALSE);
+}
+
+void _command_provide_source(const gchar *name, GData *attributes) {
+	gchar **argv = g_new0(gchar*, 4);
+	argv[0] = "sh";
+	argv[1] = "-c";
+
+	const gchar *command;
+	nube_datalist_require_value("command source", attributes, "content", G_TYPE_STRING, &command);
+	argv[2] = (char*) command;
+
+	nube_source_register(name, _command_init, _command_update, argv);
+}
+
 void _nm_info_init(NubeSource *source, gpointer user_data) {
 }
 
@@ -263,6 +319,7 @@ void _lm_sensors_provide_source(const gchar *name, GData *attributes) {
 
 void nube_builtin_source_providers_init() {
 	sensors_init(NULL);
+	nube_source_provider_register("command", _command_provide_source);
 	nube_source_provider_register("lm-sensors", _lm_sensors_provide_source);
 	nube_source_provider_register("nm-info", _nm_info_provide_source);
 }

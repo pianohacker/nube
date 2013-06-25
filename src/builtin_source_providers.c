@@ -55,6 +55,8 @@ void _command_update(NubeSource *source, gpointer user_data) {
 		g_string_append_len(output, buf, len);
 	}
 
+	close(sub_stdout);
+
 	g_value_take_string(value, output->str);
 
 	g_string_free(output, FALSE);

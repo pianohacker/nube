@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <cairo.h>
 #include <clutter/clutter.h>
 #include <math.h>
@@ -23,10 +24,14 @@ static DPoint _line_intersect(
 // Takes an existing path, and generates glow quads around that path, using its orientation.
 // Each segment of the path is offset `glow_size` pixels along its normal vector, then to create the
 // polygons, the intersection of each pair of offset lines is found.
-static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
+cairo_pattern_t* c_offset_quads(cairo_t *cr, double offset, double end_alpha) {
+	cairo_path_t *path = cairo_copy_path(cr);
 	cairo_pattern_t *result = cairo_pattern_create_mesh();
 	cairo_path_data_t *cur_data = path->data;
 	cairo_path_data_t *end = path->data + path->num_data;
+
+	double red, green, blue, alpha;
+	assert(cairo_pattern_get_rgba(cairo_get_source(cr), &red, &green, &blue, &alpha) == CAIRO_STATUS_SUCCESS);
 
 	int path_len = path->num_data / 2;
 	double norm_angles[path_len];
@@ -122,10 +127,10 @@ static cairo_pattern_t* nube_offset_quads(cairo_path_t *path, double offset) {
 			cairo_mesh_pattern_line_to(result, intersect_points[i].x, intersect_points[i].y);
 			cairo_mesh_pattern_line_to(result, intersect_points[next_i].x, intersect_points[next_i].y);
 
-			cairo_mesh_pattern_set_corner_color_rgba(result, 0, 1, 1, 1, 0.4);
-			cairo_mesh_pattern_set_corner_color_rgba(result, 1, 1, 1, 1, 0.4);
-			cairo_mesh_pattern_set_corner_color_rgba(result, 2, 1, 1, 1, 0);
-			cairo_mesh_pattern_set_corner_color_rgba(result, 3, 1, 1, 1, 0);
+			cairo_mesh_pattern_set_corner_color_rgba(result, 0, red, green, blue, alpha);
+			cairo_mesh_pattern_set_corner_color_rgba(result, 1, red, green, blue, alpha);
+			cairo_mesh_pattern_set_corner_color_rgba(result, 2, red, green, blue, end_alpha);
+			cairo_mesh_pattern_set_corner_color_rgba(result, 3, red, green, blue, end_alpha);
 			cairo_mesh_pattern_end_patch(result);
 		}
 	}
@@ -152,7 +157,8 @@ void nube_draw_panel_poly(ClutterActor *actor, cairo_t *cr, gint width, gint hei
 	}
 
 	cairo_close_path(cr);
-	cairo_set_source(cr, nube_offset_quads(cairo_copy_path(cr), nube_config.glow_size));
+	cairo_set_source_rgba(cr, 1, 1, 1, .4);
+	cairo_set_source(cr, c_offset_quads(cr, nube_config.glow_size, 0));
 	cairo_paint(cr);
 
 	clutter_cairo_set_source_color(cr, panel_config->background);

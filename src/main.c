@@ -33,6 +33,7 @@ struct {
 char *runtime_path;
 
 gboolean nube_update_widgets(gpointer user_data) {
+	if (!nube.top_panel) return TRUE;
 	nube_sources_update();
 	nube_update_all(nube.top_panel);
 	nube_update_all(nube.right_panel);
@@ -42,15 +43,21 @@ gboolean nube_update_widgets(gpointer user_data) {
 	return TRUE;
 }
 
-void setup_stage(ClutterStage *stage, gpointer *data) {
-	clutter_actor_get_size(CLUTTER_ACTOR(stage), &nube.width, &nube.height);
+void hide_stage_window() {
+	XUnmapWindow(clutter_x11_get_default_display(), clutter_x11_get_stage_window(CLUTTER_STAGE(nube.stage)));
+	clutter_actor_hide(nube.stage);
+}
 
-	XSetWindowAttributes *win_attrs = g_new(XSetWindowAttributes, 1);
-	win_attrs->override_redirect = True;
-	XChangeWindowAttributes(clutter_x11_get_default_display(), 
-	                        clutter_x11_get_stage_window(CLUTTER_STAGE(nube.stage)), 
-	                        CWOverrideRedirect,
-				            win_attrs);
+void show_stage_window() {
+	XMapWindow(clutter_x11_get_default_display(), clutter_x11_get_stage_window(CLUTTER_STAGE(nube.stage)));
+	clutter_actor_show(nube.stage);
+}
+
+void setup_stage(ClutterStage *stage, gpointer user_data) {
+	static bool done = false;
+	if (done) return;
+
+	clutter_actor_get_size(CLUTTER_ACTOR(stage), &nube.width, &nube.height);
 
 	nube.top_panel = nube_panel_new(
 		nube_config.top_panel.position, 0,
@@ -84,15 +91,22 @@ void setup_stage(ClutterStage *stage, gpointer *data) {
 	);
 	clutter_actor_add_child(nube.stage, nube.left_panel);
 
-	clutter_actor_hide(nube.stage);
+	nube_sources_update();
+	clutter_threads_add_timeout(nube_config.update_delay, nube_update_widgets, NULL);
+
+	done = true;
 }
 
-void add_opacity_transition(ClutterTransition *group, ClutterActor *actor, guint duration, guint to) {
-	ClutterTransition *result = clutter_property_transition_new("opacity");
-	guint from = clutter_actor_get_opacity(actor);
+void add_alpha_transition(ClutterTransition *group, ClutterActor *actor, guint duration, guint to) {
+	ClutterTransition *result = clutter_property_transition_new("background-color");
+	ClutterColor *from_color = g_newa(ClutterColor, 1);
+	ClutterColor *to_color = g_newa(ClutterColor, 1);
+	clutter_actor_get_background_color(actor, from_color);
+	clutter_actor_get_background_color(actor, to_color);
+	to_color->alpha = to;
 
 	clutter_transition_set_animatable(result, CLUTTER_ANIMATABLE(actor));
-	clutter_transition_set_interval(result, clutter_interval_new(G_TYPE_UINT, from, to));
+	clutter_transition_set_interval(result, clutter_interval_new(CLUTTER_TYPE_COLOR, from_color, to_color));
 
 	clutter_timeline_set_duration(CLUTTER_TIMELINE(result), duration);
 
@@ -121,13 +135,13 @@ void add_slide_transition(ClutterTransition *group, ClutterActor *actor, guint d
 }
 
 void show_stage() {
-	clutter_actor_show(nube.stage);
+	show_stage_window();
 
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.hide_trans));
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.show_trans));
 	clutter_transition_group_remove_all(CLUTTER_TRANSITION_GROUP(nube.show_trans));
 
-	add_opacity_transition(nube.show_trans, nube.stage, nube_config.show_time, 255);
+	add_alpha_transition(nube.show_trans, nube.stage, nube_config.show_time, nube_config.background->alpha);
 	add_slide_transition(nube.show_trans, nube.top_panel, nube_config.show_time, "shown_point");
 	add_slide_transition(nube.show_trans, nube.right_panel, nube_config.show_time, "shown_point");
 	add_slide_transition(nube.show_trans, nube.bottom_panel, nube_config.show_time, "shown_point");
@@ -137,7 +151,7 @@ void show_stage() {
 }
 
 void hide_done() {
-	clutter_actor_hide(nube.stage);
+	hide_stage_window();
 }
 
 void hide_stage() {
@@ -145,7 +159,7 @@ void hide_stage() {
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.hide_trans));
 	clutter_transition_group_remove_all(CLUTTER_TRANSITION_GROUP(nube.hide_trans));
 
-	add_opacity_transition(nube.hide_trans, nube.stage, nube_config.hide_time, 0);
+	add_alpha_transition(nube.hide_trans, nube.stage, nube_config.hide_time, 0);
 	add_slide_transition(nube.hide_trans, nube.top_panel, nube_config.hide_time, "hidden_point");
 	add_slide_transition(nube.hide_trans, nube.right_panel, nube_config.hide_time, "hidden_point");
 	add_slide_transition(nube.hide_trans, nube.bottom_panel, nube_config.hide_time, "hidden_point");
@@ -188,22 +202,43 @@ int main(int argc, char **argv) {
 	clutter_timeline_set_duration(CLUTTER_TIMELINE(nube.hide_trans), nube_config.hide_time);
 	g_signal_connect(nube.hide_trans, "completed", G_CALLBACK(hide_done), NULL);
 
+	Display *xdisplay = clutter_x11_get_default_display();
+	Window root_window = DefaultRootWindow(xdisplay); 
+	XVisualInfo *visual_info = clutter_x11_get_visual_info();
+
+	XSetWindowAttributes *win_attrs = g_new(XSetWindowAttributes, 1);
+	win_attrs->background_pixel = 0;
+	win_attrs->border_pixel = 0;
+	win_attrs->colormap = XCreateColormap(xdisplay, root_window, visual_info->visual, AllocNone);
+	win_attrs->override_redirect = True;
+	Window xwindow = XCreateWindow(
+		xdisplay,
+		root_window,
+		0, 0,
+		1366, 768,
+		0,
+		32,
+		InputOutput,
+		visual_info->visual,
+		CWBackPixel | CWBorderPixel | CWColormap | CWOverrideRedirect,
+		win_attrs
+	);
+	XMapWindow(xdisplay, xwindow);
+	XSync(xdisplay, False);
+
 	nube.stage = clutter_stage_new();
+	clutter_x11_set_stage_foreign(CLUTTER_STAGE(nube.stage), xwindow);
 	clutter_stage_set_use_alpha(CLUTTER_STAGE(nube.stage), TRUE);
 	clutter_actor_set_background_color(nube.stage, nube_config.background);
 	g_signal_connect(nube.stage, "destroy", clutter_main_quit, NULL);
-	g_signal_connect(nube.stage, "fullscreen", G_CALLBACK(setup_stage), NULL);
+	g_signal_connect(nube.stage, "notify::mapped", G_CALLBACK(setup_stage), NULL);
 
-	clutter_stage_set_fullscreen(CLUTTER_STAGE(nube.stage), TRUE);
-	clutter_actor_set_opacity(nube.stage, 0);
+	clutter_actor_set_size(nube.stage, 1366, 768);
 	clutter_actor_show(nube.stage);
 
-	Display *display = clutter_x11_get_default_display();
-	Window root_window = DefaultRootWindow(display); 
-
 	XGrabKey(
-		display,
-		XKeysymToKeycode(display, nube_config.show_keysym),
+		xdisplay,
+		XKeysymToKeycode(xdisplay, nube_config.show_keysym),
 		AnyModifier,
 		root_window,
 		false,
@@ -211,9 +246,6 @@ int main(int argc, char **argv) {
 		GrabModeAsync
 	);
 	clutter_x11_add_filter((ClutterX11FilterFunc) filter_func, &root_window);
-
-	nube_sources_update();
-	clutter_threads_add_timeout(nube_config.update_delay, nube_update_widgets, NULL);
 
 #ifdef PROFILE_TRIGGERED_EXIT
 	clutter_threads_add_timeout(30000, (GSourceFunc) exit, NULL);

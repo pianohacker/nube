@@ -206,6 +206,11 @@ int main(int argc, char **argv) {
 	Window root_window = DefaultRootWindow(xdisplay); 
 	XVisualInfo *visual_info = clutter_x11_get_visual_info();
 
+	Window window_throwaway;
+	int signed_throwaway;
+	unsigned root_width, root_height, unsigned_throwaway;
+	XGetGeometry(xdisplay, root_window, &window_throwaway, &signed_throwaway, &signed_throwaway, &root_width, &root_height, &unsigned_throwaway, &unsigned_throwaway);
+
 	XSetWindowAttributes *win_attrs = g_new(XSetWindowAttributes, 1);
 	win_attrs->background_pixel = 0;
 	win_attrs->border_pixel = 0;
@@ -215,7 +220,7 @@ int main(int argc, char **argv) {
 		xdisplay,
 		root_window,
 		0, 0,
-		1366, 768,
+		root_width, root_height,
 		0,
 		32,
 		InputOutput,
@@ -233,7 +238,7 @@ int main(int argc, char **argv) {
 	g_signal_connect(nube.stage, "destroy", clutter_main_quit, NULL);
 	g_signal_connect(nube.stage, "notify::mapped", G_CALLBACK(setup_stage), NULL);
 
-	clutter_actor_set_size(nube.stage, 1366, 768);
+	clutter_actor_set_size(nube.stage, root_width, root_height);
 	clutter_actor_show(nube.stage);
 
 	XGrabKey(

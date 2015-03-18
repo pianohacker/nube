@@ -154,6 +154,12 @@ void hide_done() {
 	hide_stage_window();
 }
 
+gboolean hide_after_start(gpointer data) {
+	hide_stage_window();
+
+	return FALSE;
+}
+
 void hide_stage() {
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.show_trans));
 	clutter_timeline_stop(CLUTTER_TIMELINE(nube.hide_trans));
@@ -234,12 +240,16 @@ int main(int argc, char **argv) {
 	nube.stage = clutter_stage_new();
 	clutter_x11_set_stage_foreign(CLUTTER_STAGE(nube.stage), xwindow);
 	clutter_stage_set_use_alpha(CLUTTER_STAGE(nube.stage), TRUE);
-	clutter_actor_set_background_color(nube.stage, nube_config.background);
+	ClutterColor *start_color = clutter_color_copy(nube_config.background);
+	start_color->alpha = 0;
+	clutter_actor_set_background_color(nube.stage, start_color);
 	g_signal_connect(nube.stage, "destroy", clutter_main_quit, NULL);
 	g_signal_connect(nube.stage, "notify::mapped", G_CALLBACK(setup_stage), NULL);
 
 	clutter_actor_set_size(nube.stage, root_width, root_height);
+	nube_sources_update();
 	clutter_actor_show(nube.stage);
+	g_idle_add(hide_after_start, NULL);
 
 	XGrabKey(
 		xdisplay,

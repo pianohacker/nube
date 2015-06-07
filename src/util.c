@@ -9,14 +9,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char* nube_get_runtime_path(char *argv0) {
-        char* dir = realpath(dirname(argv0), NULL);
+char* nube_get_runtime_path(const char *argv0) {
+	char* dir = realpath(dirname(strdup(argv0)), NULL);
 
-        if (strlen(dir) >= 4 && strcmp(dir + strlen(dir) - 4, "/bin") == 0) {
-                dir[strlen(dir) - 4] = 0;
-        }
+	if (strlen(dir) >= 4 && strcmp(dir + strlen(dir) - 4, "/bin") == 0) {
+			dir[strlen(dir) - 4] = 0;
+	}
 
-        return dir;
+	return dir;
 }
 
 double nube_get_num_file(const char *path) {

@@ -1,2 +1,4 @@
 build/*
 .vimrc
+*.qmlc
+**/__pycache__/*

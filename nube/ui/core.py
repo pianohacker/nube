@@ -1,7 +1,10 @@
-from PyQt5.QtCore import Qt, QObject, pyqtProperty, pyqtSignal, pyqtRemoveInputHook
-from PyQt5.QtGui import QColor
+from PyQt5.QtX11Extras import QX11Info
+from PyQt5.QtCore import Qt, QEvent, QObject, pyqtProperty, pyqtSignal, pyqtRemoveInputHook
+from PyQt5.QtGui import QColor, QGuiApplication
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickWindow
+
+from . import platform
 
 def dataPyqtProperty( type, origName ):
 	name = '_' + origName
@@ -105,13 +108,23 @@ def Themed( parent ):
 	return ThemedParent
 
 class HUD( Themed( QQuickWindow ) ):
+	@pyqtProperty( str )
+	def showKey( self ):
+		return self._showKey
+
+	@showKey.setter
+	def showKey( self, value ):
+		if self._showKey != value:
+			self._showKey = value
+			self._keyGrabber.grabKey( self.winId(), self._showKey )
+
 	def __init__( self, parent ):
 		super().__init__( parent )
-	
-		self.setX(480)
-		self.setY(270)
-		self.setWidth(960)
-		self.setHeight(540)
+
+		screen = QGuiApplication.instance().primaryScreen()
+		self._resizeTo( screen.geometry() )
+		screen.geometryChanged.connect( self._resizeTo )
+
 		self.setFlags(Qt.BypassWindowManagerHint)
 		self.setColor(QColor( Qt.transparent ))
 
@@ -120,6 +133,22 @@ class HUD( Themed( QQuickWindow ) ):
 			textFont = "Exo 2",
 			textSize = 20
 		)
+
+		self._showKey = None
+
+		self._keyGrabber = platform.KeyGrabber( self )
+	
+	def grabbedKeyPressed( self ):
+		self.show()
+	
+	def grabbedKeyReleased( self ):
+		self.hide()
+
+	def _resizeTo( self, rect ):
+		self.setX( rect.x() )
+		self.setY( rect.y() )
+		self.setWidth( rect.width() )
+		self.setHeight( rect.height() )
 
 class ThemedItem( Themed( QQuickItem ) ):
 	pass

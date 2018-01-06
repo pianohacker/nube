@@ -24,7 +24,6 @@ def main():
 		print( "\n".join( error.toString() for error in component.errors() ) )
 	else:
 		window = component.create()
-		window.show()
 
 		app.exec_()
 

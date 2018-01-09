@@ -2,3 +2,4 @@ module Nube.Widgets
 
 Clock 0.1 Clock.qml
 Panel 0.1 Panel.qml
+StyledText 0.1 StyledText.qml

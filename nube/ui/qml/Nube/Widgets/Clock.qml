@@ -1,25 +1,12 @@
 import QtQuick 2.3
-import Nube.Core 0.1
 
-ThemedItem {
+StyledText {
+	id: text
 	property int updateInterval: 1000
-	property string format: "HH:MM:ss"
+	property string format: "HH:mm:ss"
 
-	width: text.contentWidth
-	height: text.contentHeight
-
-	Text {
-		id: text
-
-		anchors.fill: parent
-
-		color: theme.textColor
-		font.family: theme.textFont
-		font.pixelSize: theme.textSize
-
-		function update() {
-			text.text = Qt.formatDateTime( new Date(), format );
-		}
+	function update() {
+		text.text = Qt.formatDateTime( new Date(), format );
 	}
 
 	Timer {

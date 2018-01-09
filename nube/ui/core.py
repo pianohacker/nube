@@ -1,7 +1,7 @@
 from PyQt5.QtX11Extras import QX11Info
 from PyQt5.QtCore import Qt, QEvent, QObject, pyqtProperty, pyqtSignal, pyqtRemoveInputHook
 from PyQt5.QtGui import QColor, QGuiApplication
-from PyQt5.QtQml import qmlRegisterType
+from PyQt5.QtQml import qmlAttachedPropertiesObject, qmlRegisterType, QQmlEngine
 from PyQt5.QtQuick import QQuickItem, QQuickWindow
 
 from . import platform
@@ -23,91 +23,104 @@ def dataPyqtProperty( type, origName ):
 
 	return pyqtProperty( type, getter, setter, notify = signal ), signal
 
-def themePyqtProperty( type, origName ):
+def stylePyqtProperty( type, origName ):
 	name = '_' + origName
 
 	signalName = origName + 'Changed' 
 	signal = pyqtSignal( type, name = signalName )
 
 	def getter( self ):
-		return self.lookupThemeProperty( origName )
+		return self.lookupProperty( origName )
 
 	def setter( self, value ):
+		print( f'setting {origName} of {self.parent().metaObject().className()} to {value}' )
 		if getattr( self, name ) != value:
 			setattr( self, name, value )
 			self.notify( origName, value )
 
 	return pyqtProperty( type, getter, setter, notify = signal ), signal
 
-def themeNotifyChildren( object, prop, value, ignore ):
-	for child in getattr( object, 'childItems', object.children )():
-		if child is ignore: continue
+def styleNotifyChildren( obj, prop, value ):
+	try:
+		style = qmlAttachedPropertiesObject( StyleAttached, obj, False )
+	except TypeError:
+		style = None
 
-		if hasattr( child, 'receiveThemeNotify' ):
-			child.receiveThemeNotify( prop, value )
-		elif isinstance( child, QQuickItem ):
-			themeNotifyChildren( child, prop, value, ignore )
+	# If `receiveNotify` returns false, this Style has a value for this property
+	if style and not style.receiveNotify( prop, value ):
+		return
 
-class Theme( QObject ):
-	textColor, textColorChanged = themePyqtProperty( QColor, 'textColor' )
-	textFont, textFontChanged = themePyqtProperty( str, 'textFont' )
-	textSize, textSizeChanged = themePyqtProperty( int, 'textSize' )
+	for child in obj.children():
+		if child is style: continue
 
-	def __init__( self, parent, **kwargs ):
+		styleNotifyChildren( child, prop, value )
+
+class StyleAttached( QObject ):
+	margin, marginChanged = stylePyqtProperty( int, 'margin' )
+	textColor, textColorChanged = stylePyqtProperty( QColor, 'textColor' )
+	textFont, textFontChanged = stylePyqtProperty( str, 'textFont' )
+	textSize, textSizeChanged = stylePyqtProperty( int, 'textSize' )
+
+	def __init__( self, attachee, **kwargs ):
+		super().__init__( attachee, **kwargs )
+
+		self._margin = None
 		self._textColor = None
 		self._textFont = None
 		self._textSize = None
 
-		super().__init__( parent, **kwargs )
+		print( f'StyleAttached of {self.parent().metaObject().className()} has {self.margin} margin' )
 
 	def notify( self, prop, value ):
 		getattr( self, prop + 'Changed' ).emit( value )
 
-		themeNotifyChildren( self.parent(), prop, value, ignore = self )
+		styleNotifyChildren(
+			self.parent(),
+			prop,
+			value
+		)
 
-	def receiveThemeNotify( self, prop, value ):
-		if getattr( self, '_' + prop ) is not None:
-			return
+	def receiveNotify( self, prop, value ):
+		if getattr( self, '_' + prop ) is None:
+			getattr( self, prop + 'Changed' ).emit( value )
+			return True
+		else:
+			return False
 
-		self.notify( prop, value )
+	def lookupProperty( self, prop ):
+		obj = self.parent()
+		style = self
 
-	def lookupThemeProperty( self, prop ):
-		ownValue = getattr( self, '_' + prop )
+		while obj:
+			if style:
+				print( f'style of {obj}: {obj.objectName()} looking for {prop}' )
+				value = getattr( style, '_' + prop )
+				if value: return value
+			else:
+				print( f'{obj}: {obj.objectName()} has no style' )
 
-		if ownValue is not None:
-			return ownValue
+			obj = getattr( obj, "parentItem", lambda: None)() or obj.parent()
+			if obj: style = qmlAttachedPropertiesObject( StyleAttached, obj, False )
 
-		parent = self.parent().parent()
+		return DEFAULT_STYLE[ prop ]
 
-		while not hasattr( parent, 'lookupThemeProperty' ):
-			parent = parent.parent()
+DEFAULT_STYLE = dict(
+	margin = 10,
+	textColor = QColor( Qt.white ),
+	textFont = "Exo 2",
 
-		return parent.lookupThemeProperty( prop )
+	textSize = 20,
+)
 
-def Themed( parent ):
-	class ThemedParent( parent ):
-		@pyqtProperty( Theme, constant = True )
-		def theme( self ):
-			return self._theme
+class Style( QObject ):
+	def __init__( self, parent ):
+		raise RuntimeError( 'Style should not be instantiated; use `Style.PROP: value` in other items' )
 
-		@theme.getter
-		def theme( self ):
-			return self._theme
+	@classmethod
+	def qmlAttachedProperties( kls, attachee ):
+		return StyleAttached( attachee )
 
-		def __init__( self, parent ):
-			super().__init__( parent )
-
-			self._theme = Theme( self )
-
-		def receiveThemeNotify( self, prop, value ):
-			self._theme.receiveThemeNotify( prop, value )
-
-		def lookupThemeProperty( self, prop ):
-			return self._theme.lookupThemeProperty( prop )
-
-	return ThemedParent
-
-class HUD( Themed( QQuickWindow ) ):
+class HUD( QQuickWindow ):
 	@pyqtProperty( str )
 	def showKey( self ):
 		return self._showKey
@@ -119,6 +132,8 @@ class HUD( Themed( QQuickWindow ) ):
 			self._keyGrabber.grabKey( self.winId(), self._showKey )
 
 	def __init__( self, parent ):
+		QQuickWindow.setDefaultAlphaBuffer( True )
+
 		super().__init__( parent )
 
 		screen = QGuiApplication.instance().primaryScreen()
@@ -127,12 +142,6 @@ class HUD( Themed( QQuickWindow ) ):
 
 		self.setFlags(Qt.BypassWindowManagerHint)
 		self.setColor(QColor( Qt.transparent ))
-
-		self._theme.pyqtConfigure(
-			textColor = QColor( Qt.white ),
-			textFont = "Exo 2",
-			textSize = 20
-		)
 
 		self._showKey = None
 
@@ -150,10 +159,6 @@ class HUD( Themed( QQuickWindow ) ):
 		self.setWidth( rect.width() )
 		self.setHeight( rect.height() )
 
-class ThemedItem( Themed( QQuickItem ) ):
-	pass
-
 def register_types():
 	qmlRegisterType( HUD, 'Nube.Core', 0,1, 'HUD' )
-	qmlRegisterType( Theme, 'Nube.Core', 0,1, 'Theme' )
-	qmlRegisterType( ThemedItem, 'Nube.Core', 0,1, 'ThemedItem' )
+	qmlRegisterType( Style, 'Nube.Core', 0,1, 'Style', attachedProperties = StyleAttached )
